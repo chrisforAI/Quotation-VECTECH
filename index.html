@@ -13,7 +13,7 @@ body {
     padding: 20px;
 }
 .container {
-    max-width: 900px;
+    max-width: 1100px;
     margin: 0 auto;
     background: white;
     border-radius: 20px;
@@ -39,9 +39,10 @@ body {
 .section-title { font-size: 1.1em; font-weight: 700; color: #2a5298; margin-bottom: 16px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
 .form-row.single { grid-template-columns: 1fr; }
+.form-row.three { grid-template-columns: 1fr 1fr 1fr; }
 .form-group { display: flex; flex-direction: column; }
 label { font-weight: 500; margin-bottom: 6px; color: #444; font-size: 0.9em; }
-input {
+input, select, textarea {
     padding: 10px 12px;
     border: 2px solid #e0e0e0;
     border-radius: 8px;
@@ -49,9 +50,11 @@ input {
     font-family: inherit;
     transition: border-color 0.2s;
 }
-input:focus { outline: none; border-color: #667eea; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; }
+textarea { resize: vertical; min-height: 60px; }
+
 .products-wrap { background: white; border: 2px dashed #667eea; padding: 16px; border-radius: 12px; min-height: 60px; }
-.product-item { background: #eef2ff; padding: 16px; border-radius: 10px; margin-bottom: 12px; position: relative; }
+.product-item { background: #eef2ff; padding: 16px; border-radius: 10px; margin-bottom: 12px; position: relative; border-left: 4px solid #667eea; }
 .product-item .num-badge {
     display: inline-block; background: #667eea; color: white;
     width: 24px; height: 24px; border-radius: 50%; text-align: center;
@@ -65,27 +68,83 @@ input:focus { outline: none; border-color: #667eea; }
 }
 .product-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
 .product-row.three { grid-template-columns: 1fr 1fr 1fr; }
+.product-row.four { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+/* 規格欄位 */
+.specs-area {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f0f4ff;
+    border-radius: 8px;
+    border: 1px dashed #667eea;
+}
+.specs-toggle {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+.specs-toggle:hover { background: #5568d3; }
+.specs-fields { display: none; }
+.specs-fields.show { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+
+/* 自動完成提示 */
+.autocomplete-dropdown {
+    position: absolute;
+    background: white;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: none;
+}
+.autocomplete-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+.autocomplete-item:hover { background: #f0f4ff; }
+.autocomplete-item .model { font-weight: 600; color: #2a5298; }
+.autocomplete-item .name { font-size: 0.9em; color: #666; margin-top: 2px; }
+.autocomplete-item .price { font-size: 0.85em; color: #e53e3e; margin-top: 2px; }
+
 .btn {
-    padding: 12px 28px; border: none; border-radius: 8px;
-    font-size: 1em; font-weight: 600; cursor: pointer;
-    font-family: inherit; transition: transform 0.2s;
+    padding: 12px 28px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.2s;
 }
 .btn:active { transform: scale(0.96); }
 .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; box-shadow: 0 4px 14px rgba(102,126,234,0.4); }
 .btn-green { background: #48bb78; color: white; box-shadow: 0 4px 14px rgba(72,187,120,0.3); }
+.btn-blue { background: #4299e1; color: white; box-shadow: 0 4px 14px rgba(66,153,225,0.3); }
+.btn-purple { background: #9f7aea; color: white; box-shadow: 0 4px 14px rgba(159,122,234,0.3); }
 .btn-center { text-align: center; margin-top: 20px; }
+
+.generate-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+}
+.generate-btns .btn { width: 100%; }
+
 .note-box { background: #fff4e6; border-left: 4px solid #f6ad55; padding: 14px; border-radius: 8px; margin-top: 16px; font-size: 0.88em; color: #744210; }
 
 .share-section { display: none; margin-top: 24px; }
 .share-msg { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 14px; white-space: pre-wrap; font-size: 0.88em; line-height: 1.6; margin: 10px 0; }
 .copy-btn { display: block; width: 100%; padding: 11px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 8px; }
 .copy-btn:active { background: #059669; }
-.steps-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 14px; border-radius: 8px; margin-top: 14px; }
-.steps-box h4 { color: #92400e; margin-bottom: 8px; }
-.steps-box ol { margin-left: 18px; color: #78350f; }
-.steps-box li { margin: 5px 0; line-height: 1.5; font-size: 0.9em; }
-.share-btns { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-.share-btns .btn { flex: 1; min-width: 120px; font-size: 0.9em; padding: 10px 16px; }
 
 .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; gap: 14px; }
 .overlay.show { display: flex; }
@@ -93,15 +152,17 @@ input:focus { outline: none; border-color: #667eea; }
 .overlay-msg { color: white; font-size: 1em; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-@media (max-width: 600px) {
-    .form-row { grid-template-columns: 1fr; }
-    .product-row, .product-row.three { grid-template-columns: 1fr; }
+@media (max-width: 768px) {
+    .form-row, .form-row.three, .form-row.four { grid-template-columns: 1fr; }
+    .product-row, .product-row.three, .product-row.four { grid-template-columns: 1fr; }
+    .generate-btns { grid-template-columns: 1fr; }
+    .specs-fields.show { grid-template-columns: 1fr; }
     .content { padding: 16px; }
     .header { padding: 24px 16px; }
     .header h1 { font-size: 1.6em; }
 }
 
-/* ===== 隱藏的報價單模板（用於截圖生成 PDF） ===== */
+/* PDF 模板樣式 (隱藏) */
 #pdfTemplate {
     position: absolute;
     left: -9999px;
@@ -117,24 +178,22 @@ input:focus { outline: none; border-color: #667eea; }
 .pt-eng { text-align: center; font-size: 13px; margin-bottom: 2px; color: #333; }
 .pt-info { text-align: center; font-size: 10.5px; color: #444; line-height: 1.8; }
 .pt-title { text-align: center; font-size: 20px; font-weight: bold; letter-spacing: 5px; margin: 20px 0 16px; }
-
 .pt-info-table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 20px; }
 .pt-info-table td { padding: 2.5px 5px; }
 .pt-info-table .lbl { width: 72px; font-weight: 600; color: #333; white-space: nowrap; }
 .pt-info-table .val { color: #222; }
-
 .pt-table { width: 100%; border-collapse: collapse; font-size: 11px; }
 .pt-table th { background: #2a5298; color: white; padding: 6px 3px; border: 1px solid #1e3c72; text-align: center; font-weight: 600; font-size: 10.5px; }
 .pt-table td { border: 1px solid #bbb; padding: 5px 3px; text-align: center; }
 .pt-table td.left { text-align: left; padding-left: 7px; }
-.pt-table .c-no   { width: 38px; }
-.pt-table .c-model { width: 115px; }
-.pt-table .c-name { width: 235px; }
-.pt-table .c-qty  { width: 42px; }
+.pt-table .c-no { width: 38px; }
+.pt-table .c-model { width: 100px; }
+.pt-table .c-name { width: 180px; }
+.pt-table .c-specs { width: 120px; }
+.pt-table .c-qty { width: 42px; }
 .pt-table .c-unit { width: 42px; }
-.pt-table .c-price { width: 78px; }
-.pt-table .c-total { width: 78px; }
-
+.pt-table .c-price { width: 70px; }
+.pt-table .c-total { width: 70px; }
 .pt-bottom { display: flex; justify-content: space-between; margin-top: 8px; font-size: 10.5px; }
 .pt-notes { color: #444; line-height: 1.9; white-space: pre-wrap; }
 .pt-totals table { border-collapse: collapse; }
@@ -153,46 +212,47 @@ input:focus { outline: none; border-color: #667eea; }
     <div class="overlay-msg" id="overlayMsg">正在生成報價單...</div>
 </div>
 
-<!-- ===== PDF 報價單模板（隱藏） ===== -->
+<!-- PDF 報價單模板（隱藏，用於截圖生成 PDF） -->
 <div id="pdfTemplate">
-    <div class="pt-company">承　邦　有　限　公　司</div>
-    <div class="pt-eng">CHEN BOM TRADING CO., LTD.</div>
-    <div class="pt-info">
+    <div class="pt-company" id="pt-company-title">承　邦　有　限　公　司</div>
+    <div class="pt-eng" id="pt-eng-title">CHEN BOM TRADING CO., LTD.</div>
+    <div class="pt-info" id="pt-info-block">
         22103 新北市汐止區大同路三段190號8樓<br>
         Tel：02-8647-2988　　Fax：02-8647-2977<br>
         E-MAIL：vectech_114@cbtrade.com.tw　　www.cbtrade.com.tw
     </div>
-    <div class="pt-title">報　價　單</div>
+    <div class="pt-title" id="pt-main-title">報　價　單</div>
 
     <table class="pt-info-table">
         <tr>
-            <td class="lbl">客戶名稱：</td><td class="val" id="t-customer"></td>
-            <td class="lbl" style="width:60px;">日　期：</td><td class="val" id="t-date"></td>
+            <td class="lbl" id="pt-lbl-customer">客戶名稱：</td><td class="val" id="t-customer"></td>
+            <td class="lbl" id="pt-lbl-date" style="width:60px;">日　期：</td><td class="val" id="t-date"></td>
         </tr>
         <tr>
-            <td class="lbl">地　　址：</td><td class="val" id="t-address"></td>
-            <td class="lbl">條件價格：</td><td class="val" id="t-priceCondition"></td>
+            <td class="lbl" id="pt-lbl-address">地　　址：</td><td class="val" id="t-address"></td>
+            <td class="lbl" id="pt-lbl-priceCondition">條件價格：</td><td class="val" id="t-priceCondition"></td>
         </tr>
         <tr>
-            <td class="lbl">電　　話：</td><td class="val" id="t-phone"></td>
-            <td class="lbl">付款方式：</td><td class="val" id="t-paymentMethod"></td>
+            <td class="lbl" id="pt-lbl-phone">電　　話：</td><td class="val" id="t-phone"></td>
+            <td class="lbl" id="pt-lbl-paymentMethod">付款方式：</td><td class="val" id="t-paymentMethod"></td>
         </tr>
         <tr>
-            <td class="lbl">傳　　真：</td><td class="val" id="t-fax"></td>
-            <td class="lbl">交　貨　期：</td><td class="val" id="t-deliveryTime"></td>
+            <td class="lbl" id="pt-lbl-fax">傳　　真：</td><td class="val" id="t-fax"></td>
+            <td class="lbl" id="pt-lbl-deliveryTime">交　貨　期：</td><td class="val" id="t-deliveryTime"></td>
         </tr>
         <tr>
-            <td class="lbl">聯　絡　人：</td><td class="val" id="t-contact"></td>
+            <td class="lbl" id="pt-lbl-contact">聯　絡　人：</td><td class="val" id="t-contact"></td>
             <td></td><td></td>
         </tr>
     </table>
 
-    <table class="pt-table">
+    <table class="pt-table" id="t-product-table">
         <thead>
-            <tr>
+            <tr id="t-table-headers">
                 <th class="c-no">項目</th>
                 <th class="c-model">型號</th>
                 <th class="c-name">品名</th>
+                <th class="c-specs">規格</th>
                 <th class="c-qty">數量</th>
                 <th class="c-unit">單位</th>
                 <th class="c-price">單價</th>
@@ -206,27 +266,27 @@ input:focus { outline: none; border-color: #667eea; }
         <div class="pt-notes" id="t-notes"></div>
         <div class="pt-totals">
             <table>
-                <tr><td class="tl">合　計</td><td class="tv" id="t-sub"></td></tr>
-                <tr><td class="tl">稅金(5%)</td><td class="tv" id="t-tax"></td></tr>
-                <tr><td class="tl tg">總　額</td><td class="tv tg" id="t-total"></td></tr>
+                <tr><td class="tl" id="t-lbl-subtotal">合　計</td><td class="tv" id="t-sub"></td></tr>
+                <tr><td class="tl" id="t-lbl-tax">稅金(5%)</td><td class="tv" id="t-tax"></td></tr>
+                <tr><td class="tl tg" id="t-lbl-total">總　額</td><td class="tv tg" id="t-total"></td></tr>
             </table>
         </div>
     </div>
     <div class="pt-handler" id="t-handler"></div>
-    <div class="pt-footer">
+    <div class="pt-footer" id="pt-footer-text">
         * BGA/SMT維修設備　　* 錫煙濾靜設備　　* 高性能焊錫烙鐵除錫設備　　* 點膠設備<br>
         * ESD靜電防護設備，測試儀器　　* 電子五金工具　　* 繞線/剝線工具，各式鍍銀線材(Kynar Wire)
     </div>
 </div>
-<!-- ===== END PDF 模板 ===== -->
 
 <div class="container">
     <div class="header">
         <h1>承邦有限公司</h1>
         <p>CHEN BOM TRADING CO., LTD.</p>
-        <p style="margin-top:6px; font-size:0.85em;">報價單自動生成系統</p>
+        <p style="margin-top:6px; font-size:0.85em;">報價單自動生成系統 V2.0</p>
     </div>
     <div class="content">
+        <!-- 客戶資訊 -->
         <div class="section">
             <div class="section-title">客戶資訊</div>
             <div class="form-row">
@@ -250,6 +310,7 @@ input:focus { outline: none; border-color: #667eea; }
             </div>
         </div>
 
+        <!-- 產品項目 -->
         <div class="section">
             <div class="section-title">產品項目</div>
             <div class="products-wrap" id="productsWrap"></div>
@@ -258,6 +319,7 @@ input:focus { outline: none; border-color: #667eea; }
             </div>
         </div>
 
+        <!-- 備註 -->
         <div class="section">
             <div class="section-title">備註說明</div>
             <div class="form-group" style="margin-bottom:10px;"><label>備註1</label><input type="text" id="note1" value="1.本報價單有效期限30天"></div>
@@ -266,35 +328,26 @@ input:focus { outline: none; border-color: #667eea; }
             <div class="form-group"><label>經辦人</label><input type="text" id="handler" value="經辦人:      吳昱霖0937488958"></div>
         </div>
 
-        <div class="note-box">⚠️ 點擊下方按鈕後將同時生成 Excel 和 PDF 兩種格式的報價單，請耐心等待。</div>
-        <div class="btn-center">
-            <button class="btn btn-primary" onclick="generate()">📄 生成報價單 (Excel + PDF)</button>
+        <div class="note-box">⚠️ 選擇需要的格式後點擊生成，系統將自動下載對應的報價單文件。</div>
+
+        <div class="generate-btns">
+            <button class="btn btn-primary" onclick="generateQuote('zh','excel')">📄 生成中文 Excel</button>
+            <button class="btn btn-blue" onclick="generateQuote('en','excel')">📄 生成英文 Excel</button>
+            <button class="btn btn-green" onclick="generateQuote('zh','pdf')">📋 生成中文 PDF</button>
+            <button class="btn btn-purple" onclick="generateQuote('en','pdf')">📋 生成英文 PDF</button>
         </div>
 
+        <!-- 分享區 -->
         <div class="share-section" id="shareSection">
             <div class="section">
                 <div class="section-title">✅ 報價單已生成</div>
                 <div style="background:#d1fae5; border-left:4px solid #10b981; padding:12px; border-radius:8px; margin-bottom:14px;">
-                    <strong style="color:#065f46;">📁 Excel 和 PDF 文件已下載到您的裝置</strong>
+                    <strong style="color:#065f46;">📁 文件已下載到您的裝置</strong>
                 </div>
                 <div style="background:#f0f9ff; border:2px dashed #3b82f6; padding:18px; border-radius:12px;">
                     <strong style="color:#1e40af;">📱 分享到 LINE 或其他 App</strong>
                     <div class="share-msg" id="shareMsg"></div>
                     <button class="copy-btn" onclick="copyMsg(this)">📋 複製訊息</button>
-                    <div class="steps-box">
-                        <h4>💡 分享步驟：</h4>
-                        <ol>
-                            <li>點擊上方「<strong>複製訊息</strong>」</li>
-                            <li>開啟 <strong>LINE</strong>，進入聊天視窗</li>
-                            <li>長按輸入框 → <strong>貼上</strong></li>
-                            <li>點擊 <strong>「+」→ 檔案</strong></li>
-                            <li>從<strong>下載資料夾</strong>選擇 PDF 並發送</li>
-                        </ol>
-                    </div>
-                </div>
-                <div class="share-btns">
-                    <button class="btn btn-green" onclick="sharePDF()" style="background:#1DA1F2;">📤 系統分享</button>
-                    <button class="btn btn-green" onclick="openMail()" style="background:#EA4335;">📧 開啟郵件</button>
                 </div>
             </div>
         </div>
@@ -303,280 +356,665 @@ input:focus { outline: none; border-color: #667eea; }
 
 <script>
 (function(){
-    var files = { excel:null, pdf:null, name:'', date:'' };
-    var productCount = 0;
+// ========== 產品牌價數據庫 ==========
+const PRICE_DB = {
+  "SD80-E-110V": { name: "SD-80 高週波無鉛烙鐵 AC110V", price: 6900, unit: "台" },
+  "SD80-E-220V": { name: "SD-80 高週波無鉛烙鐵 AC220V", price: 7000, unit: "台" },
+  "SD101": { name: "SD-101 無鉛數位烙鐵 AC110V~220V", price: 6800, unit: "台" },
+  "SD150A-E-110V": { name: "SD-150A 大功率數顯無鉛烙鐵 AC110V", price: 9000, unit: "台" },
+  "SD150A-E-220V": { name: "SD-150A 大功率數顯無鉛烙鐵 AC220V", price: 9200, unit: "台" },
+  "SD70-E-110": { name: "無鉛烙鐵 70W/AC110V", price: 3000, unit: "台" },
+  "SD320-E-110V": { name: "數位無鉛極速回溫烙鐵 320W AC110V", price: 17000, unit: "台" },
+  "SD120-E-110V": { name: "SD-120 觸控數位無鉛烙鐵 AC110V", price: 14500, unit: "台" },
+  "SD120-E-220V": { name: "SD-120 高效能無鉛烙鐵 AC220V", price: 15000, unit: "台" },
+  "S8-E-110V": { name: "智能精密無鉛烙鐵 150W/AC110V", price: 18000, unit: "台" },
+  "S8+E-110V": { name: "智能工業物聯網無鉛烙鐵 150W/AC110V", price: 30000, unit: "台" },
+  "S6-E-110V": { name: "鑷子式智能精密無鉛烙鐵 150W/AC110V", price: 30600, unit: "台" },
+  "CB-998D-E-110V": { name: "998D 數位熱風 SMD 拆焊機 AC110V", price: 6500, unit: "台" },
+  "CB-998D-E-220V": { name: "998D 數位熱風 SMD 拆焊機 AC220V", price: 7100, unit: "台" },
+  "CB-700D-E-110V": { name: "三通道熱風拆焊機 400W/AC110V-60Hz", price: 6480, unit: "台" },
+  "CB-700DS-E-110V": { name: "烙鐵熱風二合一拆焊機(70W+400W)AC110V-60Hz", price: 8850, unit: "台" },
+  "CB-701DS-E-110V": { name: "烙鐵熱風二合一拆焊機(70W+1180W)AC110V-60Hz", price: 11200, unit: "台" },
+  "CB-990D-E-110V": { name: "990D 無碳刷 SMD 無鉛熱風拆焊機 AC110V", price: 27800, unit: "台" },
+  "CB-990DX-E-110V": { name: "990D 無碳刷 SMD 無鉛熱風拆焊機 AC110V (帶真空吸筆功能)", price: 32500, unit: "台" },
+  "CB-991D1-E-110V": { name: "SMD 無鉛熱風拆焊機 AC110V", price: 13000, unit: "台" },
+  "CB-991DS1-110V": { name: "烙鐵 SMD 熱風拆焊機 AC110V", price: 16500, unit: "台" },
+  "CB-994D-110V": { name: "觸控數位 CHIP 微熱風拆焊機 AC110V", price: 14800, unit: "台" },
+  "CB-992D-E-110V": { name: "熱風拆焊機 1300W/AC110V (具有線聯網功能)", price: 41500, unit: "台" },
+  "CB-992-E-110V": { name: "熱風拆焊機 1300W/AC110V (具有分區多段加熱)", price: 22000, unit: "台" },
+  "CB-992A-E-110V": { name: "熱風拆焊機 1300W/AC110V (具有線聯網功能)(溫度自動校正)(可編程加溫區)", price: 105000, unit: "台" },
+  "CB-970-E-110V": { name: "預熱鐵板 AC110V", price: 16500, unit: "台" },
+  "CB-972-110V": { name: "972 熱風式預熱台 AC110V", price: 5700, unit: "台" },
+  "CB-973-E-110V": { name: "973 紅外線陶瓷底部預熱台", price: 15800, unit: "台" },
+  "CB-974-N2-E-220V": { name: "紅外線 BGA 錫球植球迴焊爐設備 AC220V", price: 70000, unit: "台" },
+  "CB-975-E-110V": { name: "IR 熱輻射預熱台 2000W/AC110V", price: 27500, unit: "台" },
+  "CB-201DV-E-110V": { name: "數位電動吸錫機 200W/AC110V (新款配置負壓功能)", price: 19500, unit: "台" },
+  "CB-201DV-E-220V": { name: "數位電動吸錫機 200W/AC220V (新款配置負壓功能)", price: 20000, unit: "台" },
+  "CB-963A1-E-110V": { name: "自動送錫機 (選配 1 組導管/錫絲線徑 0.6/0.8/1.0/1.2mm)", price: 7800, unit: "台" },
+  "CB-963D-E-110V": { name: "自動送錫數顯烙鐵焊接機 (附 1.0mm手動開關送錫導管*1 組/及腳踏開關)", price: 14500, unit: "台" },
+  "CB-300-0.8mm-110V": { name: "錫絲剖錫繞線機(鋸片式打孔) 0.8mm/AC110V", price: 58000, unit: "台" },
+  "CB-300-1.0mm-110V": { name: "錫絲剖錫繞線機(鋸片式打孔) 1.0mm/AC110V", price: 58000, unit: "台" },
+  "CB-995D-220V": { name: "995 數位工業熱風槍 AC220V", price: 6200, unit: "支" },
+  "CB-995D-110V": { name: "995D 數位工業熱風槍 AC110V (新款無刷電機)", price: 7500, unit: "支" },
+  "CB-436": { name: "高頻離子風扇(付電源轉換器) AC100V~240V", price: 5800, unit: "台" },
+  "CB-440-110V": { name: "桌上型離子風扇 AC110V", price: 6000, unit: "台" },
+  "CB-441-110V": { name: "寬頻離子風扇 AC110V", price: 14500, unit: "台" },
+  "CB-442A-110V": { name: "桌上型&懸掛式 3 只風扇靜電消除離子風扇", price: 19500, unit: "台" },
+  "CB-443D": { name: "高頻離子風扇 (RS-485 有線聯網)(自動清潔)", price: 9500, unit: "台" },
+  "CB-447-110V": { name: "桌上型&懸掛式（2 只風扇）靜電消除離子風扇", price: 16000, unit: "台" },
+  "CB-191D": { name: "191D 溫度測試儀", price: 3900, unit: "台" },
+  "CB-192": { name: "熱風拆焊機測溫器(配置1 組溫度感測器)", price: 18000, unit: "台" },
+  "CB-190": { name: "190 烙鐵溫度/漏電壓/阻抗測試儀", price: 17000, unit: "台" },
+  "CB-494": { name: "腕帶測試器", price: 2600, unit: "台" },
+  "CB-496": { name: "靜電壓測試儀", price: 25000, unit: "台" },
+  "CB-497": { name: "人體靜電壓測試儀", price: 9000, unit: "台" },
+  "CB-498D": { name: "離子分析儀", price: 105000, unit: "台" },
+  "CB-499D": { name: "數位式表面阻抗測試儀", price: 8500, unit: "台" },
+  "CB-499ZC": { name: "砝碼式表面阻抗測試器(重錘式)", price: 52000, unit: "台" },
+  "AC101AD": { name: "2 人吸煙手臂型焊錫煙過濾器", price: 27500, unit: "台" },
+  "AC100AD": { name: "1 人吸煙手臂型焊錫煙過濾器", price: 20500, unit: "台" },
+  "CB-114LED-5X": { name: "5 倍 5 吋懸臂式 LED 照明放大鏡 AC110V~220V", price: 2450, unit: "台" },
+  "CB-228LED-8X": { name: "8 倍 5 吋懸臂式 LED 照明放大鏡 AC110V~220V", price: 2750, unit: "台" },
+  "CB80M-B": { name: "SD-80 烙鐵頭 一般頭型", price: 80, unit: "支" },
+  "CB80M-K": { name: "SD-80 烙鐵頭 刀型頭", price: 120, unit: "支" },
+  "CB100M-B": { name: "SD-101/SD-100 烙鐵頭 一般頭型", price: 185, unit: "支" },
+  "CB100M-K": { name: "SD-101/SD-100 烙鐵頭 刀型頭", price: 260, unit: "支" },
+  "CB120M-B": { name: "SD-120 烙鐵頭 一般頭型", price: 770, unit: "支" },
+  "CB120M-K": { name: "SD-120 烙鐵頭 刀型頭", price: 880, unit: "支" },
+  "CB150M-B": { name: "SD-150A 烙鐵頭 一般頭型", price: 170, unit: "支" },
+  "CB150M-K": { name: "SD-150A 烙鐵頭 刀型頭", price: 260, unit: "支" },
+  "CB8M-B": { name: "S8 烙鐵頭 一般頭型", price: 1300, unit: "支" },
+  "CB8M-K": { name: "S8 烙鐵頭 刀型頭", price: 1650, unit: "支" },
+  "AA1121": { name: "998D 單管式熱風嘴 φ6.4mm", price: 350, unit: "個" },
+  "AA1124": { name: "998D 單管式熱風嘴 φ2.5mm", price: 350, unit: "個" },
+  "AA1130": { name: "998D 單管式熱風嘴 φ4.4mm", price: 350, unit: "個" },
+  "AA1300": { name: "998D 單管式熱風嘴 φ8.4mm", price: 450, unit: "個" },
+  "AA0808": { name: "998D BGA 熱風嘴 8mm×8mm", price: 1800, unit: "個" },
+  "AA1010": { name: "998D BGA 熱風嘴 10mm×10mm", price: 1800, unit: "個" },
+  "CB201DM-08": { name: "201D 電動吸錫槍吸錫頭 0.8mm", price: 530, unit: "支" },
+  "CB201DM-10": { name: "201D 電動吸錫槍吸錫頭 1.0mm", price: 530, unit: "支" },
+  "CB201DM-13": { name: "201D 電動吸錫槍吸錫頭 1.3mm", price: 530, unit: "支" },
+  "CB201DM-16": { name: "201D 電動吸錫槍吸錫頭 1.6mm", price: 530, unit: "支" },
+  "TC405T": { name: "SD-150 / 101 / 80 / 966A / 969 烙鐵海綿", price: 50, unit: "個" },
+  "TC405B": { name: "烙鐵頭金屬清潔球", price: 95, unit: "個" },
+  "47013": { name: "SD80 / 969 / 966D / SD60/ SD150A 烙鐵筆架", price: 830, unit: "個" },
+  "CB-310-110V": { name: "烙鐵頭清潔器 (銅刷滾輪) AC110V", price: 4200, unit: "台" },
+  "CB-800A": { name: "熱風握柄升降台+PC 板固定架總成", price: 11500, unit: "台" },
+  "BGA-F": { name: "BGA 植球治具總承 (包含：底座+墊片+上蓋+鋼片)", price: 5250, unit: "套" }
+};
 
-    function val(id){ return document.getElementById(id).value; }
-    function fmt(n){ return Math.round(n).toLocaleString('zh-TW'); }
+const EN_TRANSLATIONS = {
+  "承　邦　有　限　公　司": "CHEN BOM TRADING CO., LTD.",
+  "報　價　單": "QUOTATION",
+  "客戶名稱：": "Customer:",
+  "日　期：": "Date:",
+  "地　　址：": "Address:",
+  "條件價格：": "Price Terms:",
+  "電　　話：": "Tel:",
+  "付款方式：": "Payment:",
+  "傳　　真：": "Fax:",
+  "交　貨　期：": "Delivery:",
+  "聯　絡　人：": "Contact:",
+  "項目": "No.",
+  "型號": "Model",
+  "品名": "Description",
+  "規格": "Specifications",
+  "數量": "Qty",
+  "單位": "Unit",
+  "單價": "Price",
+  "合計": "Total",
+  "合　計": "Subtotal",
+  "稅金(5%)": "Tax (5%)",
+  "總　額": "Grand Total",
+  "台": "pcs",
+  "支": "pcs",
+  "個": "pcs",
+  "套": "set"
+};
 
-    // ---- 產品管理 ----
-    function addProduct(){
-        productCount++;
-        var wrap = document.getElementById('productsWrap');
-        var div = document.createElement('div');
-        div.className = 'product-item';
-        div.innerHTML =
-            '<div class="num-badge">'+productCount+'</div>'+
-            '<button class="remove-btn" onclick="this.parentElement.remove()">✕</button>'+
-            '<div class="product-row">'+
-                '<div class="form-group"><label>型號 *</label><input type="text" class="p-model" required placeholder="例：CB-201DV-E-110V"></div>'+
-                '<div class="form-group"><label>品名 *</label><input type="text" class="p-name" required placeholder="例：數位電動吸錫機200W"></div>'+
-            '</div>'+
-            '<div class="product-row three">'+
-                '<div class="form-group"><label>數量 *</label><input type="number" class="p-qty" required min="1" value="1" step="1"></div>'+
-                '<div class="form-group"><label>單位 *</label><input type="text" class="p-unit" required value="台"></div>'+
-                '<div class="form-group"><label>單價 *</label><input type="number" class="p-price" required min="0" step="1" placeholder="例：17800"></div>'+
-            '</div>';
-        wrap.appendChild(div);
-    }
-    window.addProduct = addProduct;
+var files = { excel: null, pdf: null, name: '', date: '' };
+var productCount = 0;
 
-    function collectProducts(){
-        var out = [];
-        document.querySelectorAll('.product-item').forEach(function(el,i){
-            out.push({
-                no: i+1,
-                model: el.querySelector('.p-model').value,
-                name:  el.querySelector('.p-name').value,
-                qty:   parseFloat(el.querySelector('.p-qty').value)||0,
-                unit:  el.querySelector('.p-unit').value,
-                price: parseFloat(el.querySelector('.p-price').value)||0
+function val(id){ return document.getElementById(id).value; }
+function fmt(n){ return Math.round(n).toLocaleString('zh-TW'); }
+
+// 型號搜索與自動完成
+function setupAutocomplete(modelInput, nameInput, priceInput, unitInput) {
+    let dropdown = null;
+    
+    modelInput.addEventListener('input', function(e) {
+        const query = e.target.value.toUpperCase().trim();
+        
+        // 移除舊的下拉選單
+        if (dropdown) dropdown.remove();
+        
+        if (query.length < 2) return;
+        
+        // 搜索匹配的產品
+        const matches = Object.keys(PRICE_DB).filter(key => 
+            key.toUpperCase().includes(query)
+        ).slice(0, 8);
+        
+        if (matches.length === 0) return;
+        
+        // 創建下拉選單
+        dropdown = document.createElement('div');
+        dropdown.className = 'autocomplete-dropdown';
+        dropdown.style.display = 'block';
+        dropdown.style.position = 'absolute';
+        dropdown.style.width = modelInput.offsetWidth + 'px';
+        dropdown.style.top = (modelInput.offsetTop + modelInput.offsetHeight) + 'px';
+        dropdown.style.left = modelInput.offsetLeft + 'px';
+        
+        matches.forEach(key => {
+            const item = PRICE_DB[key];
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item';
+            div.innerHTML = 
+                '<div class="model">' + key + '</div>' +
+                '<div class="name">' + item.name + '</div>' +
+                '<div class="price">牌價：NT$ ' + fmt(item.price) + ' / ' + item.unit + '</div>';
+            
+            div.addEventListener('click', function() {
+                modelInput.value = key;
+                nameInput.value = item.name;
+                priceInput.value = item.price;
+                unitInput.value = item.unit;
+                dropdown.remove();
             });
+            
+            dropdown.appendChild(div);
         });
-        return out;
-    }
-
-    function downloadBlob(blob, filename){
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url; a.download = filename;
-        document.body.appendChild(a); a.click();
-        document.body.removeChild(a);
-        setTimeout(function(){ URL.revokeObjectURL(url); }, 300);
-    }
-
-    // ---- Excel ----
-    function buildExcel(products){
-        return new Promise(function(resolve, reject){
-            if(typeof ExcelJS==='undefined'){ reject('ExcelJS未載入'); return; }
-            var wb = new ExcelJS.Workbook();
-            var ws = wb.addWorksheet('Sheet1');
-            ws.columns=[{width:8},{width:18},{width:30},{width:8},{width:8},{width:12},{width:12}];
-            var center={horizontal:'center',vertical:'middle'};
-            var midL={vertical:'middle'};
-            var lf={size:11};
-            var bd={style:'thin'};
-            var bAll={top:bd,bottom:bd,left:bd,right:bd};
-            var cols=['A','B','C','D','E','F','G'];
-
-            ws.mergeCells('A2:G2'); ws.getCell('A2').value='承  邦  有  限  公  司'; ws.getCell('A2').font={size:18,bold:true}; ws.getCell('A2').alignment=center;
-            ws.mergeCells('A3:G3'); ws.getCell('A3').value='CHEN BOM TRADING CO., LTD.'; ws.getCell('A3').font={size:12}; ws.getCell('A3').alignment=center;
-            ws.mergeCells('A4:G4'); ws.getCell('A4').value='22103 新北市汐止區大同路三段190號8樓'; ws.getCell('A4').font={size:10}; ws.getCell('A4').alignment=center;
-            ws.mergeCells('A5:G5'); ws.getCell('A5').value='Tel：02-8647-2988       Fax：02-8647-2977'; ws.getCell('A5').font={size:10}; ws.getCell('A5').alignment=center;
-            ws.mergeCells('A6:G6'); ws.getCell('A6').value='E-MAIL：vectech_114@cbtrade.com.tw'; ws.getCell('A6').font={size:10}; ws.getCell('A6').alignment=center;
-            ws.mergeCells('A7:G7'); ws.getCell('A7').value='www.cbtrade.com.tw'; ws.getCell('A7').font={size:10}; ws.getCell('A7').alignment=center;
-            ws.mergeCells('A8:G8'); ws.getCell('A8').value='報   價   單'; ws.getCell('A8').font={size:16,bold:true}; ws.getCell('A8').alignment=center; ws.getRow(8).height=28;
-
-            ws.mergeCells('A9:B9');  ws.getCell('A9').value='客  戶  名  稱   :'; ws.getCell('A9').font=lf; ws.getCell('C9').value=val('customerName');
-            ws.mergeCells('D9:E9');  ws.getCell('D9').value='日       期 :'; ws.getCell('D9').font=lf;
-            ws.mergeCells('F9:G9');  ws.getCell('F9').value=val('date');
-            ws.mergeCells('A10:B10'); ws.getCell('A10').value='地             址   :'; ws.getCell('A10').font=lf; ws.getCell('C10').value=val('address');
-            ws.mergeCells('D10:E10'); ws.getCell('D10').value='條件價格 :'; ws.getCell('D10').font=lf;
-            ws.mergeCells('F10:G10'); ws.getCell('F10').value=val('priceCondition');
-            ws.mergeCells('A11:B11'); ws.getCell('A11').value='電             話   :'; ws.getCell('A11').font=lf; ws.getCell('C11').value=val('phone');
-            ws.mergeCells('A12:B12'); ws.getCell('A12').value='傳             真   :'; ws.getCell('A12').font=lf; ws.getCell('C12').value=val('fax');
-            ws.mergeCells('D12:E12'); ws.getCell('D12').value='付款方式 :'; ws.getCell('D12').font=lf;
-            ws.mergeCells('F12:G12'); ws.getCell('F12').value=val('paymentMethod');
-            ws.mergeCells('A13:B13'); ws.getCell('A13').value='聯    絡     人   :'; ws.getCell('A13').font=lf; ws.getCell('C13').value=val('contact');
-            ws.mergeCells('D13:E13'); ws.getCell('D13').value='交  貨  期 :'; ws.getCell('D13').font=lf;
-            ws.mergeCells('F13:G13'); ws.getCell('F13').value=val('deliveryTime');
-
-            var headers=['項目','型號','品名','數量','單位','單價','合計'];
-            cols.forEach(function(c,i){ var cell=ws.getCell(c+'15'); cell.value=headers[i]; cell.font={size:11,bold:true}; cell.alignment=center; cell.border=bAll; });
-
-            products.forEach(function(p,i){
-                var r=16+i;
-                ws.getCell('A'+r).value=p.no; ws.getCell('B'+r).value=p.model; ws.getCell('C'+r).value=p.name;
-                ws.getCell('D'+r).value=p.qty; ws.getCell('E'+r).value=p.unit; ws.getCell('F'+r).value=p.price;
-                ws.getCell('G'+r).value={formula:'=D'+r+'*F'+r};
-                cols.forEach(function(c){ ws.getCell(c+r).font={size:10}; ws.getCell(c+r).border=bAll; ws.getCell(c+r).alignment=midL; });
-            });
-
-            var sumRow=16+products.length+2;
-            ws.mergeCells('A'+sumRow+':B'+sumRow); ws.getCell('A'+sumRow).value='備  註 :'; ws.getCell('A'+sumRow).font={size:11,bold:true};
-            ws.getCell('B'+sumRow).value=val('note1');
-            ws.getCell('F'+sumRow).value='合   計'; ws.getCell('F'+sumRow).font={size:11,bold:true}; ws.getCell('F'+sumRow).alignment={horizontal:'right'};
-            ws.getCell('G'+sumRow).value={formula:'='+products.map(function(_,i){return 'G'+(16+i);}).join('+')};
-            ws.getCell('B'+(sumRow+1)).value=val('note2');
-            ws.getCell('F'+(sumRow+1)).value='稅金'; ws.getCell('F'+(sumRow+1)).alignment={horizontal:'right'};
-            ws.getCell('G'+(sumRow+1)).value={formula:'=G'+sumRow+'*0.05'};
-            ws.getCell('B'+(sumRow+2)).value=val('note3');
-            ws.getCell('F'+(sumRow+2)).value='總額'; ws.getCell('F'+(sumRow+2)).font={size:11,bold:true}; ws.getCell('F'+(sumRow+2)).alignment={horizontal:'right'};
-            ws.getCell('G'+(sumRow+2)).value={formula:'=G'+sumRow+'+G'+(sumRow+1)};
-            ws.mergeCells('D'+(sumRow+5)+':G'+(sumRow+5)); ws.getCell('D'+(sumRow+5)).value=val('handler');
-
-            wb.xlsx.writeBuffer().then(function(buf){
-                resolve(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
-            }).catch(reject);
-        });
-    }
-
-    // ---- PDF（截圖方式，完全支援中文）----
-    function buildPDF(products){
-        return new Promise(function(resolve, reject){
-            if(typeof window.jspdf==='undefined'||typeof html2canvas==='undefined'){ reject('庫未載入'); return; }
-
-            // 填入模板數據
-            document.getElementById('t-customer').textContent = val('customerName');
-            document.getElementById('t-date').textContent    = val('date');
-            document.getElementById('t-address').textContent = val('address');
-            document.getElementById('t-priceCondition').textContent = val('priceCondition');
-            document.getElementById('t-phone').textContent   = val('phone');
-            document.getElementById('t-fax').textContent     = val('fax');
-            document.getElementById('t-paymentMethod').textContent = val('paymentMethod');
-            document.getElementById('t-deliveryTime').textContent  = val('deliveryTime');
-            document.getElementById('t-contact').textContent = val('contact');
-            document.getElementById('t-handler').textContent = val('handler');
-
-            var tbody = document.getElementById('t-rows');
-            tbody.innerHTML = '';
-            var sub = 0;
-            products.forEach(function(p){
-                var line = p.qty * p.price;
-                sub += line;
-                tbody.innerHTML +=
-                    '<tr>'+
-                    '<td>'+p.no+'</td>'+
-                    '<td class="left">'+p.model+'</td>'+
-                    '<td class="left">'+p.name+'</td>'+
-                    '<td>'+p.qty+'</td>'+
-                    '<td>'+p.unit+'</td>'+
-                    '<td>'+fmt(p.price)+'</td>'+
-                    '<td>'+fmt(line)+'</td>'+
-                    '</tr>';
-            });
-            var tax = sub * 0.05;
-            document.getElementById('t-sub').textContent   = fmt(sub);
-            document.getElementById('t-tax').textContent   = fmt(tax);
-            document.getElementById('t-total').textContent = fmt(sub+tax);
-            document.getElementById('t-notes').textContent = [val('note1'),val('note2'),val('note3')].filter(Boolean).join('\n');
-
-            // 截圖
-            var tpl = document.getElementById('pdfTemplate');
-            html2canvas(tpl, { scale:2, useCORS:true, backgroundColor:'#ffffff' }).then(function(canvas){
-                var doc = new window.jspdf.jsPDF('p','mm','a4');
-                var pw=210, ph=297;
-                var iw=pw, ih=(canvas.height/canvas.width)*pw;
-                if(ih>ph){ var r=ph/ih; iw*=r; ih=ph; }
-                doc.addImage(canvas.toDataURL('image/png'),'PNG',(pw-iw)/2, 0, iw, ih);
-                resolve(doc.output('blob'));
-            }).catch(reject);
-        });
-    }
-
-    // ---- 主生成 ----
-    window.generate = function(){
-        if(!val('customerName')){ alert('請填寫客戶名稱'); return; }
-        var products = collectProducts();
-        if(!products.length){ alert('請至少添加一個產品'); return; }
-        if(products.some(function(p){return !p.model||!p.name||!p.price;})){ alert('請填寫所有產品的型號、品名和單價'); return; }
-        if(typeof ExcelJS==='undefined'||typeof window.jspdf==='undefined'||typeof html2canvas==='undefined'){
-            alert('⚠️ 程式庫還沒載入完成，請等幾秒後再點，或檢查網路連線後重新整理頁面。'); return;
+        
+        modelInput.parentElement.style.position = 'relative';
+        modelInput.parentElement.appendChild(dropdown);
+    });
+    
+    // 點擊其他地方關閉下拉選單
+    document.addEventListener('click', function(e) {
+        if (dropdown && !modelInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.remove();
         }
+    });
+}
 
-        var overlay = document.getElementById('overlay');
-        overlay.classList.add('show');
-        document.getElementById('overlayMsg').textContent = '正在生成 Excel...';
+// 新增產品
+function addProduct(){
+    productCount++;
+    var wrap = document.getElementById('productsWrap');
+    var div = document.createElement('div');
+    div.className = 'product-item';
+    div.innerHTML =
+        '<div class="num-badge">'+productCount+'</div>'+
+        '<button class="remove-btn" onclick="this.parentElement.remove()">✕</button>'+
+        '<div class="product-row">'+
+            '<div class="form-group"><label>型號 *</label><input type="text" class="p-model" required placeholder="例：CB-201DV-E-110V"></div>'+
+            '<div class="form-group"><label>品名 *</label><input type="text" class="p-name" required placeholder="例：數位電動吸錫機200W"></div>'+
+        '</div>'+
+        '<div class="product-row four">'+
+            '<div class="form-group"><label>數量 *</label><input type="number" class="p-qty" required min="1" value="1" step="1"></div>'+
+            '<div class="form-group"><label>單位 *</label><input type="text" class="p-unit" required value="台"></div>'+
+            '<div class="form-group"><label>單價 *</label><input type="number" class="p-price" required min="0" step="1" placeholder="例：17800"></div>'+
+            '<div class="form-group"><label>備註</label><input type="text" class="p-remark" placeholder="選填"></div>'+
+        '</div>'+
+        '<button class="specs-toggle" onclick="toggleSpecs(this)">+ 新增設備規格</button>'+
+        '<div class="specs-fields">'+
+            '<div class="form-group"><label>電壓</label><input type="text" class="p-voltage" placeholder="例：AC110V"></div>'+
+            '<div class="form-group"><label>功率</label><input type="text" class="p-power" placeholder="例：200W"></div>'+
+            '<div class="form-group"><label>溫度範圍</label><input type="text" class="p-temp" placeholder="例：200℃~480℃"></div>'+
+            '<div class="form-group"><label>其他規格</label><input type="text" class="p-other-spec" placeholder="例：數位顯示"></div>'+
+        '</div>';
+    wrap.appendChild(div);
+    
+    // 設置型號自動完成
+    const modelInput = div.querySelector('.p-model');
+    const nameInput = div.querySelector('.p-name');
+    const priceInput = div.querySelector('.p-price');
+    const unitInput = div.querySelector('.p-unit');
+    setupAutocomplete(modelInput, nameInput, priceInput, unitInput);
+}
+window.addProduct = addProduct;
 
-        var cname=val('customerName'), dstr=val('date').replace(/-/g,'');
-        files.name=cname; files.date=dstr;
-        var base = dstr+'_'+cname+'_報價單';
+function toggleSpecs(btn) {
+    const specsFields = btn.nextElementSibling;
+    if (specsFields.classList.contains('show')) {
+        specsFields.classList.remove('show');
+        btn.textContent = '+ 新增設備規格';
+    } else {
+        specsFields.classList.add('show');
+        btn.textContent = '− 隱藏設備規格';
+    }
+}
+window.toggleSpecs = toggleSpecs;
 
-        buildExcel(products).then(function(blob){
-            files.excel=blob;
-            downloadBlob(blob, base+'.xlsx');
-            document.getElementById('overlayMsg').textContent = '正在生成 PDF...';
-            return buildPDF(products);
-        }).then(function(pBlob){
-            files.pdf=pBlob;
-            downloadBlob(pBlob, base+'.pdf');
-            updateShareMsg(products);
-            document.getElementById('shareSection').style.display='block';
+function collectProducts(){
+    var out = [];
+    document.querySelectorAll('.product-item').forEach(function(el,i){
+        // 收集規格
+        const voltage = el.querySelector('.p-voltage') ? el.querySelector('.p-voltage').value : '';
+        const power = el.querySelector('.p-power') ? el.querySelector('.p-power').value : '';
+        const temp = el.querySelector('.p-temp') ? el.querySelector('.p-temp').value : '';
+        const otherSpec = el.querySelector('.p-other-spec') ? el.querySelector('.p-other-spec').value : '';
+        
+        const specs = [voltage, power, temp, otherSpec].filter(Boolean).join(' / ');
+        
+        out.push({
+            no: i+1,
+            model: el.querySelector('.p-model').value,
+            name:  el.querySelector('.p-name').value,
+            specs: specs,
+            qty:   parseFloat(el.querySelector('.p-qty').value)||0,
+            unit:  el.querySelector('.p-unit').value,
+            price: parseFloat(el.querySelector('.p-price').value)||0,
+            remark: el.querySelector('.p-remark') ? el.querySelector('.p-remark').value : ''
+        });
+    });
+    return out;
+}
+
+function downloadBlob(blob, filename){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 300);
+}
+
+// 生成 Excel (支持中英文)
+function buildExcel(products, lang){
+    return new Promise(function(resolve, reject){
+        if(typeof ExcelJS==='undefined'){ reject('ExcelJS未載入'); return; }
+        
+        const isChinese = (lang === 'zh');
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Sheet1');
+        
+        // 設置列寬
+        ws.columns=[{width:8},{width:18},{width:28},{width:22},{width:8},{width:8},{width:12},{width:12}];
+        
+        const center={horizontal:'center',vertical:'middle'};
+        const midL={vertical:'middle'};
+        const lf={size:11};
+        const bd={style:'thin'};
+        const bAll={top:bd,bottom:bd,left:bd,right:bd};
+        const cols=['A','B','C','D','E','F','G','H'];
+        
+        // 公司抬頭
+        ws.mergeCells('A2:H2'); 
+        ws.getCell('A2').value = isChinese ? '承  邦  有  限  公  司' : 'CHEN BOM TRADING CO., LTD.';
+        ws.getCell('A2').font={size:18,bold:true}; ws.getCell('A2').alignment=center;
+        
+        ws.mergeCells('A3:H3'); 
+        ws.getCell('A3').value='CHEN BOM TRADING CO., LTD.';
+        ws.getCell('A3').font={size:12}; ws.getCell('A3').alignment=center;
+        
+        ws.mergeCells('A4:H4'); 
+        ws.getCell('A4').value='22103 新北市汐止區大同路三段190號8樓';
+        ws.getCell('A4').font={size:10}; ws.getCell('A4').alignment=center;
+        
+        ws.mergeCells('A5:H5'); 
+        ws.getCell('A5').value='Tel：02-8647-2988       Fax：02-8647-2977';
+        ws.getCell('A5').font={size:10}; ws.getCell('A5').alignment=center;
+        
+        ws.mergeCells('A6:H6'); 
+        ws.getCell('A6').value='E-MAIL：vectech_114@cbtrade.com.tw';
+        ws.getCell('A6').font={size:10}; ws.getCell('A6').alignment=center;
+        
+        ws.mergeCells('A7:H7'); 
+        ws.getCell('A7').value='www.cbtrade.com.tw';
+        ws.getCell('A7').font={size:10}; ws.getCell('A7').alignment=center;
+        
+        ws.mergeCells('A8:H8'); 
+        ws.getCell('A8').value = isChinese ? '報   價   單' : 'QUOTATION';
+        ws.getCell('A8').font={size:16,bold:true}; ws.getCell('A8').alignment=center; ws.getRow(8).height=28;
+        
+        // 客戶資訊
+        const lbls = isChinese ? {
+            customer: '客  戶  名  稱   :',
+            date: '日       期 :',
+            address: '地             址   :',
+            priceCondition: '條件價格 :',
+            phone: '電             話   :',
+            fax: '傳             真   :',
+            paymentMethod: '付款方式 :',
+            contact: '聯    絡     人   :',
+            deliveryTime: '交  貨  期 :'
+        } : {
+            customer: 'Customer:',
+            date: 'Date:',
+            address: 'Address:',
+            priceCondition: 'Price Terms:',
+            phone: 'Tel:',
+            fax: 'Fax:',
+            paymentMethod: 'Payment:',
+            contact: 'Contact:',
+            deliveryTime: 'Delivery:'
+        };
+        
+        ws.mergeCells('A9:B9');  ws.getCell('A9').value=lbls.customer; ws.getCell('A9').font=lf; ws.getCell('C9').value=val('customerName');
+        ws.mergeCells('D9:E9');  ws.getCell('D9').value=lbls.date; ws.getCell('D9').font=lf;
+        ws.mergeCells('F9:H9');  ws.getCell('F9').value=val('date');
+        
+        ws.mergeCells('A10:B10'); ws.getCell('A10').value=lbls.address; ws.getCell('A10').font=lf; ws.getCell('C10').value=val('address');
+        ws.mergeCells('D10:E10'); ws.getCell('D10').value=lbls.priceCondition; ws.getCell('D10').font=lf;
+        ws.mergeCells('F10:H10'); ws.getCell('F10').value=val('priceCondition');
+        
+        ws.mergeCells('A11:B11'); ws.getCell('A11').value=lbls.phone; ws.getCell('A11').font=lf; ws.getCell('C11').value=val('phone');
+        
+        ws.mergeCells('A12:B12'); ws.getCell('A12').value=lbls.fax; ws.getCell('A12').font=lf; ws.getCell('C12').value=val('fax');
+        ws.mergeCells('D12:E12'); ws.getCell('D12').value=lbls.paymentMethod; ws.getCell('D12').font=lf;
+        ws.mergeCells('F12:H12'); ws.getCell('F12').value=val('paymentMethod');
+        
+        ws.mergeCells('A13:B13'); ws.getCell('A13').value=lbls.contact; ws.getCell('A13').font=lf; ws.getCell('C13').value=val('contact');
+        ws.mergeCells('D13:E13'); ws.getCell('D13').value=lbls.deliveryTime; ws.getCell('D13').font=lf;
+        ws.mergeCells('F13:H13'); ws.getCell('F13').value=val('deliveryTime');
+        
+        // 表頭
+        const headers = isChinese ? 
+            ['項目','型號','品名','規格','數量','單位','單價','合計'] :
+            ['No.','Model','Description','Specifications','Qty','Unit','Price','Total'];
+            
+        cols.forEach(function(c,i){
+            var cell=ws.getCell(c+'15');
+            cell.value=headers[i]; cell.font={size:11,bold:true}; cell.alignment=center; cell.border=bAll;
+        });
+        
+        // 產品資料
+        products.forEach(function(p,i){
+            var r=16+i;
+            ws.getCell('A'+r).value=p.no;
+            ws.getCell('B'+r).value=p.model;
+            ws.getCell('C'+r).value=p.name;
+            ws.getCell('D'+r).value=p.specs;
+            ws.getCell('E'+r).value=p.qty;
+            ws.getCell('F'+r).value = isChinese ? p.unit : (EN_TRANSLATIONS[p.unit] || p.unit);
+            ws.getCell('G'+r).value=p.price;
+            ws.getCell('H'+r).value={formula:'=E'+r+'*G'+r};
+            cols.forEach(function(c){ 
+                ws.getCell(c+r).font={size:10}; 
+                ws.getCell(c+r).border=bAll; 
+                ws.getCell(c+r).alignment=midL; 
+            });
+        });
+        
+        // 合計
+        var sumRow=16+products.length+2;
+        ws.mergeCells('A'+sumRow+':B'+sumRow); 
+        ws.getCell('A'+sumRow).value = isChinese ? '備  註 :' : 'Notes:';
+        ws.getCell('A'+sumRow).font={size:11,bold:true};
+        ws.getCell('B'+sumRow).value=val('note1');
+        ws.getCell('G'+sumRow).value = isChinese ? '合   計' : 'Subtotal';
+        ws.getCell('G'+sumRow).font={size:11,bold:true}; 
+        ws.getCell('G'+sumRow).alignment={horizontal:'right'};
+        ws.getCell('H'+sumRow).value={formula:'='+products.map(function(_,i){return 'H'+(16+i);}).join('+')};
+        
+        ws.getCell('B'+(sumRow+1)).value=val('note2');
+        ws.getCell('G'+(sumRow+1)).value = isChinese ? '稅金' : 'Tax (5%)';
+        ws.getCell('G'+(sumRow+1)).alignment={horizontal:'right'};
+        ws.getCell('H'+(sumRow+1)).value={formula:'=H'+sumRow+'*0.05'};
+        
+        ws.getCell('B'+(sumRow+2)).value=val('note3');
+        ws.getCell('G'+(sumRow+2)).value = isChinese ? '總額' : 'Total';
+        ws.getCell('G'+(sumRow+2)).font={size:11,bold:true}; 
+        ws.getCell('G'+(sumRow+2)).alignment={horizontal:'right'};
+        ws.getCell('H'+(sumRow+2)).value={formula:'=H'+sumRow+'+H'+(sumRow+1)};
+        
+        ws.mergeCells('D'+(sumRow+5)+':H'+(sumRow+5));
+        ws.getCell('D'+(sumRow+5)).value=val('handler');
+        
+        wb.xlsx.writeBuffer().then(function(buf){
+            resolve(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+        }).catch(reject);
+    });
+}
+
+// 生成 PDF (支持中英文)
+function buildPDF(products, lang){
+    return new Promise(function(resolve, reject){
+        if(typeof window.jspdf==='undefined'||typeof html2canvas==='undefined'){ 
+            reject('jsPDF 或 html2canvas 庫未載入'); return; 
+        }
+        
+        const isChinese = (lang === 'zh');
+        
+        // 更新 PDF 模板的文字
+        if (isChinese) {
+            document.getElementById('pt-company-title').textContent = '承　邦　有　限　公　司';
+            document.getElementById('pt-eng-title').textContent = 'CHEN BOM TRADING CO., LTD.';
+            document.getElementById('pt-main-title').textContent = '報　價　單';
+            document.getElementById('pt-lbl-customer').textContent = '客戶名稱：';
+            document.getElementById('pt-lbl-date').textContent = '日　期：';
+            document.getElementById('pt-lbl-address').textContent = '地　　址：';
+            document.getElementById('pt-lbl-priceCondition').textContent = '條件價格：';
+            document.getElementById('pt-lbl-phone').textContent = '電　　話：';
+            document.getElementById('pt-lbl-paymentMethod').textContent = '付款方式：';
+            document.getElementById('pt-lbl-fax').textContent = '傳　　真：';
+            document.getElementById('pt-lbl-deliveryTime').textContent = '交　貨　期：';
+            document.getElementById('pt-lbl-contact').textContent = '聯　絡　人：';
+            document.getElementById('t-lbl-subtotal').textContent = '合　計';
+            document.getElementById('t-lbl-tax').textContent = '稅金(5%)';
+            document.getElementById('t-lbl-total').textContent = '總　額';
+            
+            // 表頭
+            document.getElementById('t-table-headers').innerHTML = 
+                '<th class="c-no">項目</th>' +
+                '<th class="c-model">型號</th>' +
+                '<th class="c-name">品名</th>' +
+                '<th class="c-specs">規格</th>' +
+                '<th class="c-qty">數量</th>' +
+                '<th class="c-unit">單位</th>' +
+                '<th class="c-price">單價</th>' +
+                '<th class="c-total">合計</th>';
+        } else {
+            document.getElementById('pt-company-title').textContent = 'CHEN BOM TRADING CO., LTD.';
+            document.getElementById('pt-eng-title').textContent = '';
+            document.getElementById('pt-info-block').innerHTML = 
+                '22103 8F., No. 190, Sec. 3, Datong Rd., Xizhi Dist., New Taipei City<br>' +
+                'Tel：02-8647-2988　　Fax：02-8647-2977<br>' +
+                'E-MAIL：vectech_114@cbtrade.com.tw　　www.cbtrade.com.tw';
+            document.getElementById('pt-main-title').textContent = 'QUOTATION';
+            document.getElementById('pt-lbl-customer').textContent = 'Customer:';
+            document.getElementById('pt-lbl-date').textContent = 'Date:';
+            document.getElementById('pt-lbl-address').textContent = 'Address:';
+            document.getElementById('pt-lbl-priceCondition').textContent = 'Price Terms:';
+            document.getElementById('pt-lbl-phone').textContent = 'Tel:';
+            document.getElementById('pt-lbl-paymentMethod').textContent = 'Payment:';
+            document.getElementById('pt-lbl-fax').textContent = 'Fax:';
+            document.getElementById('pt-lbl-deliveryTime').textContent = 'Delivery:';
+            document.getElementById('pt-lbl-contact').textContent = 'Contact:';
+            document.getElementById('t-lbl-subtotal').textContent = 'Subtotal';
+            document.getElementById('t-lbl-tax').textContent = 'Tax (5%)';
+            document.getElementById('t-lbl-total').textContent = 'Grand Total';
+            
+            // 表頭
+            document.getElementById('t-table-headers').innerHTML = 
+                '<th class="c-no">No.</th>' +
+                '<th class="c-model">Model</th>' +
+                '<th class="c-name">Description</th>' +
+                '<th class="c-specs">Specifications</th>' +
+                '<th class="c-qty">Qty</th>' +
+                '<th class="c-unit">Unit</th>' +
+                '<th class="c-price">Price</th>' +
+                '<th class="c-total">Total</th>';
+                
+            document.getElementById('pt-footer-text').innerHTML = 
+                '* BGA/SMT Repair Equipment　　* Solder Fume Extraction　　* Soldering/Desoldering Equipment　　* Dispensing Equipment<br>' +
+                '* ESD Protection Equipment & Testers　　* Hand Tools　　* Wire Wrapping Tools & Silver-plated Wires (Kynar Wire)';
+        }
+        
+        // 填入客戶資料
+        document.getElementById('t-customer').textContent = val('customerName');
+        document.getElementById('t-date').textContent = val('date');
+        document.getElementById('t-address').textContent = val('address');
+        document.getElementById('t-priceCondition').textContent = val('priceCondition');
+        document.getElementById('t-phone').textContent = val('phone');
+        document.getElementById('t-fax').textContent = val('fax');
+        document.getElementById('t-paymentMethod').textContent = val('paymentMethod');
+        document.getElementById('t-deliveryTime').textContent = val('deliveryTime');
+        document.getElementById('t-contact').textContent = val('contact');
+        document.getElementById('t-handler').textContent = val('handler');
+        
+        // 產品行
+        var tbody = document.getElementById('t-rows');
+        tbody.innerHTML = '';
+        var sub = 0;
+        products.forEach(function(p){
+            var line = p.qty * p.price;
+            sub += line;
+            const displayUnit = isChinese ? p.unit : (EN_TRANSLATIONS[p.unit] || p.unit);
+            tbody.innerHTML +=
+                '<tr>'+
+                '<td>'+p.no+'</td>'+
+                '<td class="left">'+p.model+'</td>'+
+                '<td class="left">'+p.name+'</td>'+
+                '<td class="left">'+p.specs+'</td>'+
+                '<td>'+p.qty+'</td>'+
+                '<td>'+displayUnit+'</td>'+
+                '<td>'+fmt(p.price)+'</td>'+
+                '<td>'+fmt(line)+'</td>'+
+                '</tr>';
+        });
+        
+        var tax = sub * 0.05;
+        document.getElementById('t-sub').textContent = fmt(sub);
+        document.getElementById('t-tax').textContent = fmt(tax);
+        document.getElementById('t-total').textContent = fmt(sub+tax);
+        document.getElementById('t-notes').textContent = [val('note1'),val('note2'),val('note3')].filter(Boolean).join('\n');
+        
+        // html2canvas 截圖
+        var tpl = document.getElementById('pdfTemplate');
+        html2canvas(tpl, { scale:2, useCORS:true, backgroundColor:'#ffffff' }).then(function(canvas){
+            var doc = new window.jspdf.jsPDF('p','mm','a4');
+            var pw=210, ph=297;
+            var iw=pw, ih=(canvas.height/canvas.width)*pw;
+            if(ih>ph){ var r=ph/ih; iw*=r; ih=ph; }
+            doc.addImage(canvas.toDataURL('image/png'),'PNG',(pw-iw)/2, 0, iw, ih);
+            resolve(doc.output('blob'));
+        }).catch(reject);
+    });
+}
+
+// 主生成函數
+window.generateQuote = function(lang, format){
+    if(!val('customerName')){ alert('請填寫客戶名稱'); return; }
+    var products = collectProducts();
+    if(!products.length){ alert('請至少添加一個產品'); return; }
+    if(products.some(function(p){return !p.model||!p.name||!p.price;})){ 
+        alert('請填寫所有產品的型號、品名和單價'); return; 
+    }
+    
+    if(format==='excel' && typeof ExcelJS==='undefined'){ 
+        alert('⚠️ Excel 生成庫還沒載入完成，請稍候再試。'); return; 
+    }
+    if(format==='pdf' && (typeof window.jspdf==='undefined'||typeof html2canvas==='undefined')){ 
+        alert('⚠️ PDF 生成庫還沒載入完成，請稍候再試。'); return; 
+    }
+    
+    var overlay = document.getElementById('overlay');
+    overlay.classList.add('show');
+    
+    const langName = (lang==='zh') ? '中文' : '英文';
+    const formatName = (format==='excel') ? 'Excel' : 'PDF';
+    document.getElementById('overlayMsg').textContent = '正在生成'+langName+formatName+'...';
+    
+    var cname=val('customerName'), dstr=val('date').replace(/-/g,'');
+    files.name=cname; files.date=dstr;
+    var ext = (format==='excel') ? '.xlsx' : '.pdf';
+    var baseName = dstr+'_'+cname+'_報價單_'+langName+ext;
+    
+    if (format === 'excel') {
+        buildExcel(products, lang).then(function(blob){
+            downloadBlob(blob, baseName);
             overlay.classList.remove('show');
-            document.getElementById('shareSection').scrollIntoView({behavior:'smooth'});
+            showShareSection(products);
         }).catch(function(err){
             overlay.classList.remove('show');
             alert('❌ 生成失敗：'+err);
         });
-    };
-
-    // ---- 分享 ----
-    function updateShareMsg(products){
-        var sub=products.reduce(function(s,p){return s+p.qty*p.price;},0);
-        document.getElementById('shareMsg').textContent =
-            '【承邦有限公司 報價單】\n\n'+
-            '客戶：'+val('customerName')+'\n'+
-            '日期：'+val('date')+'\n\n'+
-            '總金額：NT$ '+fmt(sub*1.05)+' (含稅)\n\n'+
-            '---\n承邦有限公司\nCHEN BOM TRADING CO., LTD.\n'+
-            'Tel：02-8647-2988\nFax：02-8647-2977\n'+
-            'vectech_114@cbtrade.com.tw\nwww.cbtrade.com.tw\n\n'+
-            '※ 詳細內容請見附件 PDF/Excel 檔案';
-    }
-
-    window.copyMsg = function(btn){
-        var text = document.getElementById('shareMsg').textContent;
-        function done(){ btn.textContent='✅ 已複製！'; setTimeout(function(){btn.textContent='📋 複製訊息';},2000); }
-        if(navigator.clipboard && navigator.clipboard.writeText){
-            navigator.clipboard.writeText(text).then(done).catch(function(){
-                var ta=document.createElement('textarea'); ta.value=text;
-                ta.style.position='fixed'; ta.style.left='-9999px';
-                document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
-            });
-        } else {
-            var ta=document.createElement('textarea'); ta.value=text;
-            ta.style.position='fixed'; ta.style.left='-9999px';
-            document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
-        }
-    };
-
-    window.sharePDF = function(){
-        if(!files.pdf){ alert('請先生成報價單'); return; }
-        var f=new File([files.pdf], files.date+'_'+files.name+'_報價單.pdf',{type:'application/pdf'});
-        if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){
-            navigator.share({title:'報價單', text:document.getElementById('shareMsg').textContent, files:[f]});
-        } else { alert('您的瀏覽器不支援直接分享文件。請使用「複製訊息」方式分享。'); }
-    };
-
-    window.openMail = function(){
-        var s=encodeURIComponent('【承邦有限公司】'+val('customerName')+' - 報價單');
-        var b=encodeURIComponent(document.getElementById('shareMsg').textContent);
-        window.location.href='mailto:?subject='+s+'&body='+b;
-    };
-
-    // ---- 初始化 ----
-    document.addEventListener('DOMContentLoaded', function(){
-        document.getElementById('date').valueAsDate = new Date();
-        addProduct();
-    });
-
-    // ---- 載入庫 ----
-    function loadScript(src){
-        return new Promise(function(ok,fail){
-            var s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=fail; document.head.appendChild(s);
+    } else {
+        buildPDF(products, lang).then(function(pBlob){
+            downloadBlob(pBlob, baseName);
+            overlay.classList.remove('show');
+            showShareSection(products);
+        }).catch(function(err){
+            overlay.classList.remove('show');
+            alert('❌ 生成失敗：'+err);
         });
     }
-    Promise.all([
-        loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js'),
-        loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'),
-        loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js')
-    ]).catch(function(){
-        return Promise.all([
-            typeof ExcelJS!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js'),
-            typeof window.jspdf!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
-            typeof html2canvas!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
-        ]);
+};
+
+function showShareSection(products) {
+    var sub=products.reduce(function(s,p){return s+p.qty*p.price;},0);
+    document.getElementById('shareMsg').textContent =
+        '【承邦有限公司 報價單】\n\n'+
+        '客戶：'+val('customerName')+'\n'+
+        '日期：'+val('date')+'\n\n'+
+        '總金額：NT$ '+fmt(sub*1.05)+' (含稅)\n\n'+
+        '---\n承邦有限公司\nCHEN BOM TRADING CO., LTD.\n'+
+        'Tel：02-8647-2988\nFax：02-8647-2977\n'+
+        'vectech_114@cbtrade.com.tw\nwww.cbtrade.com.tw\n\n'+
+        '※ 詳細內容請見附件 PDF/Excel 檔案';
+    document.getElementById('shareSection').style.display='block';
+    document.getElementById('shareSection').scrollIntoView({behavior:'smooth'});
+}
+
+window.copyMsg = function(btn){
+    var text = document.getElementById('shareMsg').textContent;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){
+            btn.textContent='✅ 已複製！'; 
+            setTimeout(function(){btn.textContent='📋 複製訊息';},2000);
+        }).catch(function(){
+            fallbackCopy(text, btn);
+        });
+    } else {
+        fallbackCopy(text, btn);
+    }
+};
+
+function fallbackCopy(text, btn) {
+    var ta=document.createElement('textarea'); 
+    ta.value=text;
+    ta.style.position='fixed'; 
+    ta.style.left='-9999px';
+    document.body.appendChild(ta); 
+    ta.select(); 
+    document.execCommand('copy'); 
+    document.body.removeChild(ta); 
+    btn.textContent='✅ 已複製！';
+    setTimeout(function(){btn.textContent='📋 複製訊息';},2000);
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', function(){
+    document.getElementById('date').valueAsDate = new Date();
+    addProduct();
+});
+
+// 載入外部庫
+function loadScript(src){
+    return new Promise(function(ok,fail){
+        var s=document.createElement('script'); 
+        s.src=src; 
+        s.onload=ok; 
+        s.onerror=fail; 
+        document.head.appendChild(s);
     });
+}
+
+Promise.all([
+    loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js')
+]).catch(function(){
+    console.warn('主要 CDN 載入失敗，嘗試備用來源...');
+    return Promise.all([
+        typeof ExcelJS!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js'),
+        typeof window.jspdf!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+        typeof html2canvas!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
+    ]);
+});
 })();
 </script>
 </body>
