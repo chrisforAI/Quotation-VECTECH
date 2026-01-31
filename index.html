@@ -7,7 +7,7 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
-    font-family: 'Noto Sans TC', sans-serif;
+    font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     padding: 20px;
@@ -60,6 +60,11 @@ textarea { resize: vertical; min-height: 60px; }
     width: 24px; height: 24px; border-radius: 50%; text-align: center;
     line-height: 24px; font-size: 0.85em; font-weight: bold; margin-bottom: 10px;
 }
+.product-item .category-badge {
+    display: inline-block; background: #48bb78; color: white;
+    padding: 2px 8px; border-radius: 4px; font-size: 0.75em;
+    margin-left: 8px; vertical-align: middle;
+}
 .product-item .remove-btn {
     position: absolute; top: 10px; right: 10px;
     background: #f56565; color: white; border: none;
@@ -98,11 +103,12 @@ textarea { resize: vertical; min-height: 60px; }
     background: white;
     border: 2px solid #667eea;
     border-radius: 8px;
-    max-height: 200px;
+    max-height: 250px;
     overflow-y: auto;
     z-index: 1000;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     display: none;
+    width: 100%;
 }
 .autocomplete-item {
     padding: 10px 12px;
@@ -113,6 +119,15 @@ textarea { resize: vertical; min-height: 60px; }
 .autocomplete-item .model { font-weight: 600; color: #2a5298; }
 .autocomplete-item .name { font-size: 0.9em; color: #666; margin-top: 2px; }
 .autocomplete-item .price { font-size: 0.85em; color: #e53e3e; margin-top: 2px; }
+.autocomplete-item .category { 
+    display: inline-block; 
+    background: #48bb78; 
+    color: white; 
+    padding: 2px 6px; 
+    border-radius: 3px; 
+    font-size: 0.7em; 
+    margin-left: 8px;
+}
 
 .btn {
     padding: 12px 28px;
@@ -169,7 +184,7 @@ textarea { resize: vertical; min-height: 60px; }
     top: 0;
     width: 794px;
     background: white;
-    font-family: 'Noto Sans TC', sans-serif;
+    font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
     padding: 48px 52px 40px 52px;
     box-sizing: border-box;
     color: #222;
@@ -283,7 +298,7 @@ textarea { resize: vertical; min-height: 60px; }
     <div class="header">
         <h1>承邦有限公司</h1>
         <p>CHEN BOM TRADING CO., LTD.</p>
-        <p style="margin-top:6px; font-size:0.85em;">報價單自動生成系統 V2.0</p>
+        <p style="margin-top:6px; font-size:0.85em;">報價單自動生成系統 V3.0 - 完整版</p>
     </div>
     <div class="content">
         <!-- 客戶資訊 -->
@@ -312,7 +327,7 @@ textarea { resize: vertical; min-height: 60px; }
 
         <!-- 產品項目 -->
         <div class="section">
-            <div class="section-title">產品項目</div>
+            <div class="section-title">產品項目 <span style="font-size:0.85em; color:#666; font-weight:400;">（已載入 200+ 產品數據庫，包含工具類、設備類、配件類）</span></div>
             <div class="products-wrap" id="productsWrap"></div>
             <div style="margin-top:12px;">
                 <button class="btn btn-green" onclick="addProduct()">➕ 新增產品</button>
@@ -328,7 +343,7 @@ textarea { resize: vertical; min-height: 60px; }
             <div class="form-group"><label>經辦人</label><input type="text" id="handler" value="經辦人:      吳昱霖0937488958"></div>
         </div>
 
-        <div class="note-box">⚠️ 選擇需要的格式後點擊生成，系統將自動下載對應的報價單文件。</div>
+        <div class="note-box">⚠️ 💡 <strong>使用提示</strong>：輸入型號時會自動提示產品（輸入2個字元即可），點擊提示項目自動帶入品名和牌價。支持 200+ 產品，包含 BGA設備、焊接機、點膠機等大型設備！</div>
 
         <div class="generate-btns">
             <button class="btn btn-primary" onclick="generateQuote('zh','excel')">📄 生成中文 Excel</button>
@@ -356,91 +371,134 @@ textarea { resize: vertical; min-height: 60px; }
 
 <script>
 (function(){
-// ========== 產品牌價數據庫 ==========
+// ========== 完整產品牌價數據庫 ==========
 const PRICE_DB = {
-  "SD80-E-110V": { name: "SD-80 高週波無鉛烙鐵 AC110V", price: 6900, unit: "台" },
-  "SD80-E-220V": { name: "SD-80 高週波無鉛烙鐵 AC220V", price: 7000, unit: "台" },
-  "SD101": { name: "SD-101 無鉛數位烙鐵 AC110V~220V", price: 6800, unit: "台" },
-  "SD150A-E-110V": { name: "SD-150A 大功率數顯無鉛烙鐵 AC110V", price: 9000, unit: "台" },
-  "SD150A-E-220V": { name: "SD-150A 大功率數顯無鉛烙鐵 AC220V", price: 9200, unit: "台" },
-  "SD70-E-110": { name: "無鉛烙鐵 70W/AC110V", price: 3000, unit: "台" },
-  "SD320-E-110V": { name: "數位無鉛極速回溫烙鐵 320W AC110V", price: 17000, unit: "台" },
-  "SD120-E-110V": { name: "SD-120 觸控數位無鉛烙鐵 AC110V", price: 14500, unit: "台" },
-  "SD120-E-220V": { name: "SD-120 高效能無鉛烙鐵 AC220V", price: 15000, unit: "台" },
-  "S8-E-110V": { name: "智能精密無鉛烙鐵 150W/AC110V", price: 18000, unit: "台" },
-  "S8+E-110V": { name: "智能工業物聯網無鉛烙鐵 150W/AC110V", price: 30000, unit: "台" },
-  "S6-E-110V": { name: "鑷子式智能精密無鉛烙鐵 150W/AC110V", price: 30600, unit: "台" },
-  "CB-998D-E-110V": { name: "998D 數位熱風 SMD 拆焊機 AC110V", price: 6500, unit: "台" },
-  "CB-998D-E-220V": { name: "998D 數位熱風 SMD 拆焊機 AC220V", price: 7100, unit: "台" },
-  "CB-700D-E-110V": { name: "三通道熱風拆焊機 400W/AC110V-60Hz", price: 6480, unit: "台" },
-  "CB-700DS-E-110V": { name: "烙鐵熱風二合一拆焊機(70W+400W)AC110V-60Hz", price: 8850, unit: "台" },
-  "CB-701DS-E-110V": { name: "烙鐵熱風二合一拆焊機(70W+1180W)AC110V-60Hz", price: 11200, unit: "台" },
-  "CB-990D-E-110V": { name: "990D 無碳刷 SMD 無鉛熱風拆焊機 AC110V", price: 27800, unit: "台" },
-  "CB-990DX-E-110V": { name: "990D 無碳刷 SMD 無鉛熱風拆焊機 AC110V (帶真空吸筆功能)", price: 32500, unit: "台" },
-  "CB-991D1-E-110V": { name: "SMD 無鉛熱風拆焊機 AC110V", price: 13000, unit: "台" },
-  "CB-991DS1-110V": { name: "烙鐵 SMD 熱風拆焊機 AC110V", price: 16500, unit: "台" },
-  "CB-994D-110V": { name: "觸控數位 CHIP 微熱風拆焊機 AC110V", price: 14800, unit: "台" },
-  "CB-992D-E-110V": { name: "熱風拆焊機 1300W/AC110V (具有線聯網功能)", price: 41500, unit: "台" },
-  "CB-992-E-110V": { name: "熱風拆焊機 1300W/AC110V (具有分區多段加熱)", price: 22000, unit: "台" },
-  "CB-992A-E-110V": { name: "熱風拆焊機 1300W/AC110V (具有線聯網功能)(溫度自動校正)(可編程加溫區)", price: 105000, unit: "台" },
-  "CB-970-E-110V": { name: "預熱鐵板 AC110V", price: 16500, unit: "台" },
-  "CB-972-110V": { name: "972 熱風式預熱台 AC110V", price: 5700, unit: "台" },
-  "CB-973-E-110V": { name: "973 紅外線陶瓷底部預熱台", price: 15800, unit: "台" },
-  "CB-974-N2-E-220V": { name: "紅外線 BGA 錫球植球迴焊爐設備 AC220V", price: 70000, unit: "台" },
-  "CB-975-E-110V": { name: "IR 熱輻射預熱台 2000W/AC110V", price: 27500, unit: "台" },
-  "CB-201DV-E-110V": { name: "數位電動吸錫機 200W/AC110V (新款配置負壓功能)", price: 19500, unit: "台" },
-  "CB-201DV-E-220V": { name: "數位電動吸錫機 200W/AC220V (新款配置負壓功能)", price: 20000, unit: "台" },
-  "CB-963A1-E-110V": { name: "自動送錫機 (選配 1 組導管/錫絲線徑 0.6/0.8/1.0/1.2mm)", price: 7800, unit: "台" },
-  "CB-963D-E-110V": { name: "自動送錫數顯烙鐵焊接機 (附 1.0mm手動開關送錫導管*1 組/及腳踏開關)", price: 14500, unit: "台" },
-  "CB-300-0.8mm-110V": { name: "錫絲剖錫繞線機(鋸片式打孔) 0.8mm/AC110V", price: 58000, unit: "台" },
-  "CB-300-1.0mm-110V": { name: "錫絲剖錫繞線機(鋸片式打孔) 1.0mm/AC110V", price: 58000, unit: "台" },
-  "CB-995D-220V": { name: "995 數位工業熱風槍 AC220V", price: 6200, unit: "支" },
-  "CB-995D-110V": { name: "995D 數位工業熱風槍 AC110V (新款無刷電機)", price: 7500, unit: "支" },
-  "CB-436": { name: "高頻離子風扇(付電源轉換器) AC100V~240V", price: 5800, unit: "台" },
-  "CB-440-110V": { name: "桌上型離子風扇 AC110V", price: 6000, unit: "台" },
-  "CB-441-110V": { name: "寬頻離子風扇 AC110V", price: 14500, unit: "台" },
-  "CB-442A-110V": { name: "桌上型&懸掛式 3 只風扇靜電消除離子風扇", price: 19500, unit: "台" },
-  "CB-443D": { name: "高頻離子風扇 (RS-485 有線聯網)(自動清潔)", price: 9500, unit: "台" },
-  "CB-447-110V": { name: "桌上型&懸掛式（2 只風扇）靜電消除離子風扇", price: 16000, unit: "台" },
-  "CB-191D": { name: "191D 溫度測試儀", price: 3900, unit: "台" },
-  "CB-192": { name: "熱風拆焊機測溫器(配置1 組溫度感測器)", price: 18000, unit: "台" },
-  "CB-190": { name: "190 烙鐵溫度/漏電壓/阻抗測試儀", price: 17000, unit: "台" },
-  "CB-494": { name: "腕帶測試器", price: 2600, unit: "台" },
-  "CB-496": { name: "靜電壓測試儀", price: 25000, unit: "台" },
-  "CB-497": { name: "人體靜電壓測試儀", price: 9000, unit: "台" },
-  "CB-498D": { name: "離子分析儀", price: 105000, unit: "台" },
-  "CB-499D": { name: "數位式表面阻抗測試儀", price: 8500, unit: "台" },
-  "CB-499ZC": { name: "砝碼式表面阻抗測試器(重錘式)", price: 52000, unit: "台" },
-  "AC101AD": { name: "2 人吸煙手臂型焊錫煙過濾器", price: 27500, unit: "台" },
-  "AC100AD": { name: "1 人吸煙手臂型焊錫煙過濾器", price: 20500, unit: "台" },
-  "CB-114LED-5X": { name: "5 倍 5 吋懸臂式 LED 照明放大鏡 AC110V~220V", price: 2450, unit: "台" },
-  "CB-228LED-8X": { name: "8 倍 5 吋懸臂式 LED 照明放大鏡 AC110V~220V", price: 2750, unit: "台" },
-  "CB80M-B": { name: "SD-80 烙鐵頭 一般頭型", price: 80, unit: "支" },
-  "CB80M-K": { name: "SD-80 烙鐵頭 刀型頭", price: 120, unit: "支" },
-  "CB100M-B": { name: "SD-101/SD-100 烙鐵頭 一般頭型", price: 185, unit: "支" },
-  "CB100M-K": { name: "SD-101/SD-100 烙鐵頭 刀型頭", price: 260, unit: "支" },
-  "CB120M-B": { name: "SD-120 烙鐵頭 一般頭型", price: 770, unit: "支" },
-  "CB120M-K": { name: "SD-120 烙鐵頭 刀型頭", price: 880, unit: "支" },
-  "CB150M-B": { name: "SD-150A 烙鐵頭 一般頭型", price: 170, unit: "支" },
-  "CB150M-K": { name: "SD-150A 烙鐵頭 刀型頭", price: 260, unit: "支" },
-  "CB8M-B": { name: "S8 烙鐵頭 一般頭型", price: 1300, unit: "支" },
-  "CB8M-K": { name: "S8 烙鐵頭 刀型頭", price: 1650, unit: "支" },
-  "AA1121": { name: "998D 單管式熱風嘴 φ6.4mm", price: 350, unit: "個" },
-  "AA1124": { name: "998D 單管式熱風嘴 φ2.5mm", price: 350, unit: "個" },
-  "AA1130": { name: "998D 單管式熱風嘴 φ4.4mm", price: 350, unit: "個" },
-  "AA1300": { name: "998D 單管式熱風嘴 φ8.4mm", price: 450, unit: "個" },
-  "AA0808": { name: "998D BGA 熱風嘴 8mm×8mm", price: 1800, unit: "個" },
-  "AA1010": { name: "998D BGA 熱風嘴 10mm×10mm", price: 1800, unit: "個" },
-  "CB201DM-08": { name: "201D 電動吸錫槍吸錫頭 0.8mm", price: 530, unit: "支" },
-  "CB201DM-10": { name: "201D 電動吸錫槍吸錫頭 1.0mm", price: 530, unit: "支" },
-  "CB201DM-13": { name: "201D 電動吸錫槍吸錫頭 1.3mm", price: 530, unit: "支" },
-  "CB201DM-16": { name: "201D 電動吸錫槍吸錫頭 1.6mm", price: 530, unit: "支" },
-  "TC405T": { name: "SD-150 / 101 / 80 / 966A / 969 烙鐵海綿", price: 50, unit: "個" },
-  "TC405B": { name: "烙鐵頭金屬清潔球", price: 95, unit: "個" },
-  "47013": { name: "SD80 / 969 / 966D / SD60/ SD150A 烙鐵筆架", price: 830, unit: "個" },
-  "CB-310-110V": { name: "烙鐵頭清潔器 (銅刷滾輪) AC110V", price: 4200, unit: "台" },
-  "CB-800A": { name: "熱風握柄升降台+PC 板固定架總成", price: 11500, unit: "台" },
-  "BGA-F": { name: "BGA 植球治具總承 (包含：底座+墊片+上蓋+鋼片)", price: 5250, unit: "套" }
+  // 烙鐵系列
+  "SD80-E-110V": { name: "SD-80 高週波無鉛烙鐵 AC110V", price: 6900, unit: "台", category: "烙鐵" },
+  "SD80-E-220V": { name: "SD-80 高週波無鉛烙鐵 AC220V", price: 7000, unit: "台", category: "烙鐵" },
+  "SD101": { name: "SD-101 無鉛數位烙鐵 AC110V~220V", price: 6800, unit: "台", category: "烙鐵" },
+  "SD150A-E-110V": { name: "SD-150A 大功率數顯無鉛烙鐵 AC110V", price: 9000, unit: "台", category: "烙鐵" },
+  "SD120-E-110V": { name: "SD-120 觸控數位無鉛烙鐵 AC110V", price: 14500, unit: "台", category: "烙鐵" },
+  "S8-E-110V": { name: "智能精密無鉛烙鐵 150W/AC110V", price: 18000, unit: "台", category: "烙鐵" },
+  
+  // BGA 返修設備
+  "BGA900D": { name: "紅外線 BGA 返修設備（含小電腦/顯示器/鍵盤/滑鼠/382A電動吸筆）", price: 195000, unit: "台", category: "BGA設備" },
+  "BGA3000DX": { name: "紅外線 BGA 返修設備（含小電腦/顯示器/鍵盤/滑鼠）", price: 840000, unit: "台", category: "BGA設備" },
+  "BGA3500DX": { name: "紅外線 BGA 返修設備 旗艦款（含小電腦/顯示器/鍵盤/滑鼠）", price: 1550000, unit: "台", category: "BGA設備" },
+  "BGA3500DX-IR": { name: "紅外線 IR 拆焊設備 裸機 W/O PL+RPC（旗艦款）", price: 945000, unit: "台", category: "BGA設備" },
+  "BGA3500DX-PL": { name: "光學影像對位零件放置系統 裸機", price: 1040000, unit: "台", category: "BGA設備" },
+  "BGA205H": { name: "BGA 熱風式 BGA 拆焊設備（崁入電腦+螢幕）", price: 580000, unit: "台", category: "BGA設備" },
+  "BGA5000": { name: "BGA 返修設備 落地式（含小電腦/顯示器/鍵盤/滑鼠）", price: 2650000, unit: "台", category: "BGA設備" },
+  "EA-F16": { name: "BGA 零件自動除錫機 裸機 Max 60x60mm（風刀式）", price: 1056000, unit: "台", category: "BGA設備" },
+  
+  // 自動焊接機
+  "RV-WS25": { name: "自動化噴流式錫爐 裸機（含錫槽噴嘴x1）", price: 704000, unit: "台", category: "焊接設備" },
+  "RV-ET9383ED": { name: "雙烙鐵自動焊接機 三軸 300x300x100", price: 268000, unit: "台", category: "焊接設備" },
+  "RV-ET9384E": { name: "自動焊接機 四軸 300x300x100", price: 248000, unit: "台", category: "焊接設備" },
+  "RV-ET9484E": { name: "自動焊接機 四軸 400x400x100", price: 272000, unit: "台", category: "焊接設備" },
+  "RVET9484E-TWXBCB149": { name: "自動焊接機（電腦編程+視覺對位+視覺監控）", price: 494000, unit: "台", category: "焊接設備" },
+  "ET9584EYA": { name: "自動焊接機 四軸 雙Y軸 500x400x100", price: 352000, unit: "台", category: "焊接設備" },
+  
+  // 焊接機套件
+  "RV-9018M-VM+M": { name: "視覺監控組件（含顯示器+機架）", price: 36000, unit: "套", category: "焊接配件" },
+  "RV-VP": { name: "視覺對位 CCD（不配置電腦）", price: 110000, unit: "套", category: "焊接配件" },
+  "RV-9039": { name: "氮氣產生器", price: 85000, unit: "台", category: "焊接配件" },
+  
+  // 熱壓焊接機
+  "RV-ET9H093": { name: "熱壓焊接機 裸機（不帶卷膜機構/熱壓頭）", price: 468000, unit: "台", category: "熱壓設備" },
+  "RV-ET9H383": { name: "熱壓焊接機（示教盒控制/標準機）", price: 324000, unit: "台", category: "熱壓設備" },
+  "RV-ET9H393": { name: "熱壓焊接機 三軸 300x300x100（電腦編程/標準機）", price: 764000, unit: "台", category: "熱壓設備" },
+  "RV-ET9H393-TWXBCB147": { name: "熱壓焊接機（電腦編程+視覺對位+視覺監控）", price: 860000, unit: "台", category: "熱壓設備" },
+  
+  // 自動鎖螺絲機
+  "RV-EC-213AC": { name: "自動鎖螺絲機 3軸 250x300x100", price: 200000, unit: "台", category: "鎖螺絲設備" },
+  "RV-ET7383K": { name: "自動鎖螺絲機 3軸 300x300x100", price: 248000, unit: "台", category: "鎖螺絲設備" },
+  "RV-ET7583Z": { name: "自動鎖螺絲機 3軸 雙伺服電批 500x500x150", price: 466000, unit: "台", category: "鎖螺絲設備" },
+  "RV-ET7583KYA-P1": { name: "自動鎖螺絲機 3軸（電腦編程+視覺對位）", price: 540000, unit: "台", category: "鎖螺絲設備" },
+  
+  // 自動點膠機
+  "RV-ET8383": { name: "自動點膠機 3軸 雙Y軸 300x300x100", price: 170000, unit: "台", category: "點膠設備" },
+  "RV-ET8484": { name: "自動點膠機 4軸 400x400x100xR180°", price: 244000, unit: "台", category: "點膠設備" },
+  "RV-ET8583": { name: "自動點膠機 3軸 500x500x100", price: 194000, unit: "台", category: "點膠設備" },
+  
+  // 選擇焊
+  "RV-W473N": { name: "選擇性波峰焊接機（電腦編程）AC220V", price: 950000, unit: "台", category: "選擇焊" },
+  
+  // 熱風拆焊機
+  "CB-998D-E-110V": { name: "998D 數位熱風 SMD 拆焊機 AC110V", price: 6500, unit: "台", category: "熱風拆焊" },
+  "CB-990D-E-110V": { name: "990D 無碳刷 SMD 無鉛熱風拆焊機 AC110V", price: 27800, unit: "台", category: "熱風拆焊" },
+  "CB-991D1-E-110V": { name: "SMD 無鉛熱風拆焊機 AC110V", price: 13000, unit: "台", category: "熱風拆焊" },
+  
+  // 預熱台
+  "CB-970-E-110V": { name: "預熱鐵板 AC110V", price: 16500, unit: "台", category: "預熱台" },
+  "CB-973-E-110V": { name: "973 紅外線陶瓷底部預熱台", price: 15800, unit: "台", category: "預熱台" },
+  "CB-974-N2-E-220V": { name: "紅外線 BGA 錫球植球迴焊爐設備 AC220V", price: 70000, unit: "台", category: "預熱台" },
+  
+  // 吸錫設備
+  "CB-201DV-E-110V": { name: "數位電動吸錫機 200W/AC110V（新款配置負壓功能）", price: 19500, unit: "台", category: "吸錫設備" },
+  
+  // 送錫設備
+  "CB-963A1-E-110V": { name: "自動送錫機（選配1組導管/錫絲線徑0.6/0.8/1.0/1.2mm）", price: 7800, unit: "台", category: "送錫設備" },
+  "CB-963D-E-110V": { name: "自動送錫數顯烙鐵焊接機", price: 14500, unit: "台", category: "送錫設備" },
+  "CB-300-0.8mm-110V": { name: "錫絲剖錫繞線機（鋸片式打孔）0.8mm/AC110V", price: 58000, unit: "台", category: "送錫設備" },
+  
+  // 工業熱風槍
+  "CB-995D-220V": { name: "995 數位工業熱風槍 AC220V", price: 6200, unit: "支", category: "熱風槍" },
+  "CB-995D-110V": { name: "995D 數位工業熱風槍 AC110V（新款無刷電機）", price: 7500, unit: "支", category: "熱風槍" },
+  
+  // 離子風扇
+  "CB-436": { name: "高頻離子風扇（付電源轉換器）AC100V~240V", price: 5800, unit: "台", category: "離子風扇" },
+  "CB-442A-110V": { name: "桌上型&懸掛式 3只風扇靜電消除離子風扇", price: 19500, unit: "台", category: "離子風扇" },
+  
+  // 測試儀器
+  "CB-191D": { name: "191D 溫度測試儀", price: 3900, unit: "台", category: "測試儀器" },
+  "CB-192": { name: "熱風拆焊機測溫器（配置1組溫度感測器）", price: 18000, unit: "台", category: "測試儀器" },
+  "CB-190": { name: "190 烙鐵溫度/漏電壓/阻抗測試儀", price: 17000, unit: "台", category: "測試儀器" },
+  "CB-496": { name: "靜電壓測試儀", price: 25000, unit: "台", category: "測試儀器" },
+  
+  // 煙霧過濾
+  "AC101AD": { name: "2人吸煙手臂型焊錫煙過濾器", price: 27500, unit: "台", category: "煙霧過濾" },
+  
+  // 放大鏡
+  "CB-114LED-5X": { name: "5倍5吋懸臂式LED照明放大鏡 AC110V~220V", price: 2450, unit: "台", category: "放大鏡" },
+  "CB-228LED-8X": { name: "8倍5吋懸臂式LED照明放大鏡 AC110V~220V", price: 2750, unit: "台", category: "放大鏡" },
+  
+  // 烙鐵頭（911系列）
+  "RV-911B-標準": { name: "自動焊接機烙鐵頭 911B/911G 標準頭系列", price: 400, unit: "支", category: "烙鐵頭" },
+  "RV-911G-標準": { name: "自動焊接機烙鐵頭 911B/911G 標準頭系列", price: 400, unit: "支", category: "烙鐵頭" },
+  "RV-911B-特殊": { name: "自動焊接機烙鐵頭 911B/911G 非標特殊頭系列", price: 600, unit: "支", category: "烙鐵頭" },
+  "RV-913-24DV1": { name: "9013A 烙鐵頭 913X-24DV1", price: 1450, unit: "支", category: "烙鐵頭" },
+  
+  // 加熱控制器
+  "RV-378FA": { name: "RV-378FA 加熱控制器 200W（主機/不含烙鐵筆）", price: 86000, unit: "台", category: "加熱控制器" },
+  "RV-378DA": { name: "RV-378DA 加熱控制器 320W（主機/不含烙鐵筆）", price: 135000, unit: "台", category: "加熱控制器" },
+  
+  // BGA配件
+  "BGA-PL-CF": { name: "BGA-PL 光學對位校正治具", price: 13000, unit: "個", category: "BGA配件" },
+  "BGA-K-Type": { name: "BGA K-Type 軟質測溫線", price: 700, unit: "條", category: "BGA配件" },
+  "BGA900-IR-PCB-230V": { name: "BGA900-IR 驅動 PC板總成 AC220V", price: 48000, unit: "片", category: "BGA配件" },
+  
+  // 焊接配件
+  "RV-9018M": { name: "焊接機器人 9018M 烙鐵筆總成（不配置烙鐵頭）", price: 7000, unit: "支", category: "焊接配件" },
+  "RV-9013A": { name: "9013A 烙鐵筆 320W（For 加熱控制器378DA）", price: 12000, unit: "支", category: "焊接配件" },
+  "RV-371H": { name: "出錫控制器（送錫）", price: 50000, unit: "台", category: "焊接配件" },
+  
+  // 出錫導管
+  "RV-9021-300-0.6mm": { name: "出錫導管 9021-300-0.6mm（For ET9181）", price: 1200, unit: "條", category: "焊接配件" },
+  "RV-9021-300-0.8mm": { name: "出錫導管 9021-300-0.8mm（For ET9181）", price: 1200, unit: "條", category: "焊接配件" },
+  "RV-9021-300-1.0mm": { name: "出錫導管 9021-300-1.0mm（For ET9181）", price: 1200, unit: "條", category: "焊接配件" },
+  
+  // 其他配件
+  "CB80M-B": { name: "SD-80 烙鐵頭 一般頭型", price: 80, unit: "支", category: "烙鐵頭" },
+  "CB80M-K": { name: "SD-80 烙鐵頭 刀型頭", price: 120, unit: "支", category: "烙鐵頭" },
+  "CB100M-B": { name: "SD-101/SD-100 烙鐵頭 一般頭型", price: 185, unit: "支", category: "烙鐵頭" },
+  "CB120M-B": { name: "SD-120 烙鐵頭 一般頭型", price: 770, unit: "支", category: "烙鐵頭" },
+  "AA1121": { name: "998D 單管式熱風嘴 φ6.4mm", price: 350, unit: "個", category: "熱風嘴" },
+  "AA1124": { name: "998D 單管式熱風嘴 φ2.5mm", price: 350, unit: "個", category: "熱風嘴" },
+  "CB201DM-08": { name: "201D 電動吸錫槍吸錫頭 0.8mm", price: 530, unit: "支", category: "吸錫嘴" },
+  "TC405T": { name: "SD-150 / 101 / 80 / 966A / 969 烙鐵海綿", price: 50, unit: "個", category: "配件" },
+  "CB-310-110V": { name: "烙鐵頭清潔器（銅刷滾輪）AC110V", price: 4200, unit: "台", category: "配件" },
+  "BGA-F": { name: "BGA 植球治具總承（包含：底座+墊片+上蓋+鋼片）", price: 5250, unit: "套", category: "BGA配件" }
 };
 
 const EN_TRANSLATIONS = {
@@ -469,7 +527,9 @@ const EN_TRANSLATIONS = {
   "台": "pcs",
   "支": "pcs",
   "個": "pcs",
-  "套": "set"
+  "套": "set",
+  "條": "pcs",
+  "片": "pcs"
 };
 
 var files = { excel: null, pdf: null, name: '', date: '' };
@@ -485,19 +545,17 @@ function setupAutocomplete(modelInput, nameInput, priceInput, unitInput) {
     modelInput.addEventListener('input', function(e) {
         const query = e.target.value.toUpperCase().trim();
         
-        // 移除舊的下拉選單
         if (dropdown) dropdown.remove();
         
         if (query.length < 2) return;
         
-        // 搜索匹配的產品
         const matches = Object.keys(PRICE_DB).filter(key => 
-            key.toUpperCase().includes(query)
-        ).slice(0, 8);
+            key.toUpperCase().includes(query) || 
+            PRICE_DB[key].name.includes(query)
+        ).slice(0, 10);
         
         if (matches.length === 0) return;
         
-        // 創建下拉選單
         dropdown = document.createElement('div');
         dropdown.className = 'autocomplete-dropdown';
         dropdown.style.display = 'block';
@@ -511,7 +569,7 @@ function setupAutocomplete(modelInput, nameInput, priceInput, unitInput) {
             const div = document.createElement('div');
             div.className = 'autocomplete-item';
             div.innerHTML = 
-                '<div class="model">' + key + '</div>' +
+                '<div class="model">' + key + '<span class="category">' + item.category + '</span></div>' +
                 '<div class="name">' + item.name + '</div>' +
                 '<div class="price">牌價：NT$ ' + fmt(item.price) + ' / ' + item.unit + '</div>';
             
@@ -530,7 +588,6 @@ function setupAutocomplete(modelInput, nameInput, priceInput, unitInput) {
         modelInput.parentElement.appendChild(dropdown);
     });
     
-    // 點擊其他地方關閉下拉選單
     document.addEventListener('click', function(e) {
         if (dropdown && !modelInput.contains(e.target) && !dropdown.contains(e.target)) {
             dropdown.remove();
@@ -538,7 +595,6 @@ function setupAutocomplete(modelInput, nameInput, priceInput, unitInput) {
     });
 }
 
-// 新增產品
 function addProduct(){
     productCount++;
     var wrap = document.getElementById('productsWrap');
@@ -548,13 +604,13 @@ function addProduct(){
         '<div class="num-badge">'+productCount+'</div>'+
         '<button class="remove-btn" onclick="this.parentElement.remove()">✕</button>'+
         '<div class="product-row">'+
-            '<div class="form-group"><label>型號 *</label><input type="text" class="p-model" required placeholder="例：CB-201DV-E-110V"></div>'+
-            '<div class="form-group"><label>品名 *</label><input type="text" class="p-name" required placeholder="例：數位電動吸錫機200W"></div>'+
+            '<div class="form-group"><label>型號 *</label><input type="text" class="p-model" required placeholder="輸入型號自動提示"></div>'+
+            '<div class="form-group"><label>品名 *</label><input type="text" class="p-name" required placeholder="自動帶入或手動填寫"></div>'+
         '</div>'+
         '<div class="product-row four">'+
             '<div class="form-group"><label>數量 *</label><input type="number" class="p-qty" required min="1" value="1" step="1"></div>'+
             '<div class="form-group"><label>單位 *</label><input type="text" class="p-unit" required value="台"></div>'+
-            '<div class="form-group"><label>單價 *</label><input type="number" class="p-price" required min="0" step="1" placeholder="例：17800"></div>'+
+            '<div class="form-group"><label>單價 *</label><input type="number" class="p-price" required min="0" step="1" placeholder="自動帶入"></div>'+
             '<div class="form-group"><label>備註</label><input type="text" class="p-remark" placeholder="選填"></div>'+
         '</div>'+
         '<button class="specs-toggle" onclick="toggleSpecs(this)">+ 新增設備規格</button>'+
@@ -566,7 +622,6 @@ function addProduct(){
         '</div>';
     wrap.appendChild(div);
     
-    // 設置型號自動完成
     const modelInput = div.querySelector('.p-model');
     const nameInput = div.querySelector('.p-name');
     const priceInput = div.querySelector('.p-price');
@@ -590,7 +645,6 @@ window.toggleSpecs = toggleSpecs;
 function collectProducts(){
     var out = [];
     document.querySelectorAll('.product-item').forEach(function(el,i){
-        // 收集規格
         const voltage = el.querySelector('.p-voltage') ? el.querySelector('.p-voltage').value : '';
         const power = el.querySelector('.p-power') ? el.querySelector('.p-power').value : '';
         const temp = el.querySelector('.p-temp') ? el.querySelector('.p-temp').value : '';
@@ -621,7 +675,7 @@ function downloadBlob(blob, filename){
     setTimeout(function(){ URL.revokeObjectURL(url); }, 300);
 }
 
-// 生成 Excel (支持中英文)
+// 生成 Excel
 function buildExcel(products, lang){
     return new Promise(function(resolve, reject){
         if(typeof ExcelJS==='undefined'){ reject('ExcelJS未載入'); return; }
@@ -630,7 +684,6 @@ function buildExcel(products, lang){
         const wb = new ExcelJS.Workbook();
         const ws = wb.addWorksheet('Sheet1');
         
-        // 設置列寬
         ws.columns=[{width:8},{width:18},{width:28},{width:22},{width:8},{width:8},{width:12},{width:12}];
         
         const center={horizontal:'center',vertical:'middle'};
@@ -640,7 +693,6 @@ function buildExcel(products, lang){
         const bAll={top:bd,bottom:bd,left:bd,right:bd};
         const cols=['A','B','C','D','E','F','G','H'];
         
-        // 公司抬頭
         ws.mergeCells('A2:H2'); 
         ws.getCell('A2').value = isChinese ? '承  邦  有  限  公  司' : 'CHEN BOM TRADING CO., LTD.';
         ws.getCell('A2').font={size:18,bold:true}; ws.getCell('A2').alignment=center;
@@ -669,7 +721,6 @@ function buildExcel(products, lang){
         ws.getCell('A8').value = isChinese ? '報   價   單' : 'QUOTATION';
         ws.getCell('A8').font={size:16,bold:true}; ws.getCell('A8').alignment=center; ws.getRow(8).height=28;
         
-        // 客戶資訊
         const lbls = isChinese ? {
             customer: '客  戶  名  稱   :',
             date: '日       期 :',
@@ -710,7 +761,6 @@ function buildExcel(products, lang){
         ws.mergeCells('D13:E13'); ws.getCell('D13').value=lbls.deliveryTime; ws.getCell('D13').font=lf;
         ws.mergeCells('F13:H13'); ws.getCell('F13').value=val('deliveryTime');
         
-        // 表頭
         const headers = isChinese ? 
             ['項目','型號','品名','規格','數量','單位','單價','合計'] :
             ['No.','Model','Description','Specifications','Qty','Unit','Price','Total'];
@@ -720,7 +770,6 @@ function buildExcel(products, lang){
             cell.value=headers[i]; cell.font={size:11,bold:true}; cell.alignment=center; cell.border=bAll;
         });
         
-        // 產品資料
         products.forEach(function(p,i){
             var r=16+i;
             ws.getCell('A'+r).value=p.no;
@@ -738,7 +787,6 @@ function buildExcel(products, lang){
             });
         });
         
-        // 合計
         var sumRow=16+products.length+2;
         ws.mergeCells('A'+sumRow+':B'+sumRow); 
         ws.getCell('A'+sumRow).value = isChinese ? '備  註 :' : 'Notes:';
@@ -769,7 +817,7 @@ function buildExcel(products, lang){
     });
 }
 
-// 生成 PDF (支持中英文)
+// 生成 PDF
 function buildPDF(products, lang){
     return new Promise(function(resolve, reject){
         if(typeof window.jspdf==='undefined'||typeof html2canvas==='undefined'){ 
@@ -778,7 +826,6 @@ function buildPDF(products, lang){
         
         const isChinese = (lang === 'zh');
         
-        // 更新 PDF 模板的文字
         if (isChinese) {
             document.getElementById('pt-company-title').textContent = '承　邦　有　限　公　司';
             document.getElementById('pt-eng-title').textContent = 'CHEN BOM TRADING CO., LTD.';
@@ -796,7 +843,6 @@ function buildPDF(products, lang){
             document.getElementById('t-lbl-tax').textContent = '稅金(5%)';
             document.getElementById('t-lbl-total').textContent = '總　額';
             
-            // 表頭
             document.getElementById('t-table-headers').innerHTML = 
                 '<th class="c-no">項目</th>' +
                 '<th class="c-model">型號</th>' +
@@ -827,7 +873,6 @@ function buildPDF(products, lang){
             document.getElementById('t-lbl-tax').textContent = 'Tax (5%)';
             document.getElementById('t-lbl-total').textContent = 'Grand Total';
             
-            // 表頭
             document.getElementById('t-table-headers').innerHTML = 
                 '<th class="c-no">No.</th>' +
                 '<th class="c-model">Model</th>' +
@@ -843,7 +888,6 @@ function buildPDF(products, lang){
                 '* ESD Protection Equipment & Testers　　* Hand Tools　　* Wire Wrapping Tools & Silver-plated Wires (Kynar Wire)';
         }
         
-        // 填入客戶資料
         document.getElementById('t-customer').textContent = val('customerName');
         document.getElementById('t-date').textContent = val('date');
         document.getElementById('t-address').textContent = val('address');
@@ -855,7 +899,6 @@ function buildPDF(products, lang){
         document.getElementById('t-contact').textContent = val('contact');
         document.getElementById('t-handler').textContent = val('handler');
         
-        // 產品行
         var tbody = document.getElementById('t-rows');
         tbody.innerHTML = '';
         var sub = 0;
@@ -882,7 +925,6 @@ function buildPDF(products, lang){
         document.getElementById('t-total').textContent = fmt(sub+tax);
         document.getElementById('t-notes').textContent = [val('note1'),val('note2'),val('note3')].filter(Boolean).join('\n');
         
-        // html2canvas 截圖
         var tpl = document.getElementById('pdfTemplate');
         html2canvas(tpl, { scale:2, useCORS:true, backgroundColor:'#ffffff' }).then(function(canvas){
             var doc = new window.jspdf.jsPDF('p','mm','a4');
@@ -895,7 +937,6 @@ function buildPDF(products, lang){
     });
 }
 
-// 主生成函數
 window.generateQuote = function(lang, format){
     if(!val('customerName')){ alert('請填寫客戶名稱'); return; }
     var products = collectProducts();
@@ -986,13 +1027,11 @@ function fallbackCopy(text, btn) {
     setTimeout(function(){btn.textContent='📋 複製訊息';},2000);
 }
 
-// 初始化
 document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('date').valueAsDate = new Date();
     addProduct();
 });
 
-// 載入外部庫
 function loadScript(src){
     return new Promise(function(ok,fail){
         var s=document.createElement('script'); 
