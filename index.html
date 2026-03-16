@@ -234,7 +234,7 @@ textarea { resize: vertical; min-height: 60px; }
     <div class="pt-info" id="pt-info-block">
         22103 新北市汐止區大同路三段190號8樓<br>
         Tel：02-8647-2988　　Fax：02-8647-2977<br>
-        E-MAIL：vectech_114@cbtrade.com.tw　　www.cbtrade.com.tw
+        E-MAIL：<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d8aebdbbacbdbbb087e9e9ec98bbbaacaab9bcbdf6bbb7b5f6acaf">[email&#160;protected]</a>　　www.cbtrade.com.tw
     </div>
     <div class="pt-title" id="pt-main-title">報　價　單</div>
 
@@ -369,7 +369,7 @@ textarea { resize: vertical; min-height: 60px; }
     </div>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 (function(){
 // ========== 完整產品牌價數據庫 ==========
 const PRICE_DB = {
@@ -1632,12 +1632,13 @@ function buildPDF(products, lang){
         document.getElementById('t-notes').textContent = [val('note1'),val('note2'),val('note3')].filter(Boolean).join('\n');
         
         var tpl = document.getElementById('pdfTemplate');
-        html2canvas(tpl, { scale:2, useCORS:true, backgroundColor:'#ffffff' }).then(function(canvas){
+        html2canvas(tpl, { scale:1.5, useCORS:true, backgroundColor:'#ffffff' }).then(function(canvas){
             var doc = new window.jspdf.jsPDF('p','mm','a4');
             var pw=210, ph=297;
             var iw=pw, ih=(canvas.height/canvas.width)*pw;
             if(ih>ph){ var r=ph/ih; iw*=r; ih=ph; }
-            doc.addImage(canvas.toDataURL('image/png'),'PNG',(pw-iw)/2, 0, iw, ih);
+            // 使用 JPEG 並壓縮以減小檔案大小（品質 0.85 = 85%）
+            doc.addImage(canvas.toDataURL('image/jpeg', 0.85),'JPEG',(pw-iw)/2, 0, iw, ih);
             resolve(doc.output('blob'));
         }).catch(reject);
     });
@@ -1756,11 +1757,4 @@ Promise.all([
     console.warn('主要 CDN 載入失敗，嘗試備用來源...');
     return Promise.all([
         typeof ExcelJS!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js'),
-        typeof window.jspdf!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
-        typeof html2canvas!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
-    ]);
-});
-})();
-</script>
-</body>
-</html>
+        typeof window.jspdf!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.co
