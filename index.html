@@ -1757,4 +1757,11 @@ Promise.all([
     console.warn('主要 CDN 載入失敗，嘗試備用來源...');
     return Promise.all([
         typeof ExcelJS!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js'),
-        typeof window.jspdf!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.co
+        typeof window.jspdf!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+        typeof html2canvas!=='undefined'?Promise.resolve():loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
+    ]);
+});
+})();
+</script>
+</body>
+</html>
