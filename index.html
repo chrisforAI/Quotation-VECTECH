@@ -303,7 +303,15 @@ textarea { resize: vertical; min-height: 60px; }
     <div class="content">
         <!-- 客戶資訊 -->
         <div class="section">
-            <div class="section-title">客戶資訊</div>
+            <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <span>客戶資訊</span>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="button" onclick="document.getElementById('ocr-file').click()" style="background:#48bb78;color:white;border:none;padding:7px 13px;border-radius:6px;cursor:pointer;font-size:0.85em;">📷 上傳截圖</button>
+                    <button type="button" onclick="document.getElementById('ocr-camera').click()" style="background:#4299e1;color:white;border:none;padding:7px 13px;border-radius:6px;cursor:pointer;font-size:0.85em;">📸 拍照辨識</button>
+                    <input id="ocr-file" type="file" accept="image/*" style="display:none" onchange="ocrRun(this)">
+                    <input id="ocr-camera" type="file" accept="image/*" capture="environment" style="display:none" onchange="ocrRun(this)">
+                </div>
+            </div>
             <div class="form-row">
                 <div class="form-group"><label>客戶名稱 *</label><input type="text" id="customerName" required placeholder="例：健格科技"></div>
                 <div class="form-group"><label>日期 *</label><input type="date" id="date" required></div>
@@ -1762,6 +1770,73 @@ Promise.all([
     ]);
 });
 })();
+
+// ===== Claude API 拍照/截圖辨識客戶資訊 =====
+function ocrRun(input) {
+    var file = input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    var overlay = document.getElementById('overlay');
+    var msg = document.getElementById('overlayMsg');
+    overlay.classList.add('show');
+    msg.textContent = 'AI 辨識中，請稍候…';
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var base64 = e.target.result.split(',')[1];
+        var mediaType = file.type || 'image/jpeg';
+
+        fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-6',
+                max_tokens: 500,
+                messages: [{
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'image',
+                            source: { type: 'base64', media_type: mediaType, data: base64 }
+                        },
+                        {
+                            type: 'text',
+                            text: '這是一張客戶聯絡資訊的截圖或照片。請從中找出以下資訊，只回傳 JSON，不要其他文字：\n{"company":"公司名稱","contact":"聯絡人姓名","phone":"電話","fax":"傳真","address":"地址"}\n找不到的欄位填空字串。'
+                        }
+                    ]
+                }]
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            overlay.classList.remove('show');
+            if (data.error) { alert('API 錯誤：' + data.error.message); return; }
+            var text = data.content[0].text.trim();
+            // 取出 JSON 部分
+            var jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) { alert('⚠️ 無法解析辨識結果'); return; }
+            var info = JSON.parse(jsonMatch[0]);
+            var filled = [];
+            if (info.company)  { document.getElementById('customerName').value = info.company;  filled.push('公司名稱'); }
+            if (info.contact)  { document.getElementById('contact').value      = info.contact;  filled.push('聯絡人'); }
+            if (info.phone)    { document.getElementById('phone').value        = info.phone;    filled.push('電話'); }
+            if (info.fax)      { document.getElementById('fax').value          = info.fax;      filled.push('傳真'); }
+            if (info.address)  { document.getElementById('address').value      = info.address;  filled.push('地址'); }
+            if (filled.length > 0) {
+                alert('✅ 已自動填入：' + filled.join('、'));
+            } else {
+                alert('⚠️ 圖片中未偵測到客戶資訊，請確認圖片內容');
+            }
+        })
+        .catch(function(e) {
+            overlay.classList.remove('show');
+            alert('❌ 辨識失敗：' + e.message);
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
 </script>
 </body>
 </html>
