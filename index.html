@@ -1277,7 +1277,7 @@ const EN_TRANSLATIONS = {
 var files = { excel: null, pdf: null, name: '', date: '' };
 var productCount = 0;
 
-function val(id){ return document.getElementById(id).value; }
+function val(id){ var el=document.getElementById(id); return el ? el.value : ''; }
 function fmt(n){ return Math.round(n).toLocaleString('zh-TW'); }
 
 // 型號搜索與自動完成
@@ -1604,9 +1604,9 @@ function buildPDF(products, lang){
                 [isChinese?'Address / Di Zhi:':'Address:', val('address'),
                  isChinese?'Price Terms:':'Price Terms:', val('priceCondition')||''],
                 [isChinese?'Tel / Dian Hua:':'Tel:', val('phone'),
-                 isChinese?'Payment:':'Payment:', val('payment')||''],
+                 isChinese?'Payment:':'Payment:', val('paymentMethod')||''],
                 [isChinese?'Fax / Chuan Zhen:':'Fax:', val('fax'),
-                 isChinese?'Delivery:':'Delivery:', val('delivery')||''],
+                 isChinese?'Delivery:':'Delivery:', val('deliveryTime')||''],
                 [isChinese?'Contact / Lian Luo Ren:':'Contact:', val('contact'), '', '']
             ];
             info.forEach(function(row){
@@ -1802,8 +1802,8 @@ function saveToGS(products, id) {
             contact: val('contact'), phone: val('phone'),
             fax: val('fax'), address: val('address'),
             priceCondition: (document.getElementById('priceCondition')||{value:''}).value,
-            payment: (document.getElementById('payment')||{value:''}).value,
-            delivery: (document.getElementById('delivery')||{value:''}).value,
+            payment: (document.getElementById('paymentMethod')||{value:''}).value,
+            delivery: (document.getElementById('deliveryTime')||{value:''}).value,
             notes: (document.getElementById('notes')||{value:''}).value,
             items: JSON.stringify(products),
             subtotal: Math.round(sub), tax: Math.round(sub*0.05), total: Math.round(sub*1.05)
@@ -1948,9 +1948,10 @@ window.loadQuote = function(id) {
             document.getElementById('fax').value          = q.fax || '';
             document.getElementById('address').value      = q.address || '';
             document.getElementById('date').value         = q.date || '';
-            ['priceCondition','payment','delivery','notes'].forEach(function(f){
-                var el = document.getElementById(f);
-                if(el) el.value = q[f] || '';
+            var fieldMap = {priceCondition:'priceCondition', payment:'paymentMethod', delivery:'deliveryTime', notes:'note1'};
+            Object.keys(fieldMap).forEach(function(k){
+                var el2 = document.getElementById(fieldMap[k]);
+                if(el2) el2.value = q[k] || '';
             });
             var el = document.getElementById('quoteIdDisplay');
             if(el) el.textContent = q.id;
