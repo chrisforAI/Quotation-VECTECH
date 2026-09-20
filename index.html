@@ -1560,159 +1560,119 @@ function buildExcel(products, lang){
 }
 
 // 生成 PDF
+function fillPdfTemplate(products, lang) {
+    var isChinese = (lang === 'zh');
+    var t = function(id){ var e=document.getElementById(id); if(e) e.textContent=arguments[1]||''; };
+    var h = function(id){ var e=document.getElementById(id); if(e) e.innerHTML=arguments[1]||''; };
+
+    if(isChinese){
+        t('pt-company-title','承　邦　有　限　公　司');
+        t('pt-eng-title','CHEN BOM TRADING CO., LTD.');
+        h('pt-info-block','22103 新北市汐止區大同路三段190號8樓<br>Tel：02-8647-2988　　Fax：02-8647-2977<br>E-MAIL：vectech_114@cbtrade.com.tw　　www.cbtrade.com.tw');
+        t('pt-main-title','報　價　單');
+        t('pt-lbl-customer','客戶名稱：'); t('pt-lbl-date','日　期：');
+        t('pt-lbl-address','地　　址：'); t('pt-lbl-priceCondition','條件價格：');
+        t('pt-lbl-phone','電　　話：'); t('pt-lbl-paymentMethod','付款方式：');
+        t('pt-lbl-fax','傳　　真：'); t('pt-lbl-deliveryTime','交　貨　期：');
+        t('pt-lbl-contact','聯　絡　人：');
+        t('t-lbl-subtotal','合　計'); t('t-lbl-tax','稅金(5%)'); t('t-lbl-total','總　額');
+        h('t-table-headers',
+            '<th class="c-no">項目</th><th class="c-model">型號</th>' +
+            '<th class="c-name">品名</th><th class="c-specs">規格</th>' +
+            '<th class="c-qty">數量</th><th class="c-unit">單位</th>' +
+            '<th class="c-price">單價</th><th class="c-total">合計</th>');
+        t('pt-handler-lbl','經辦人：');
+        h('pt-footer-text',
+            '* BGA/SMT維修設備　　* 錫煙濾靜設備　　* 高性能焊錫烙鐵除錫設備　　* 點膠設備<br>' +
+            '* ESD靜電防護設備，測試儀器　　* 電子五金工具　　* 繞線/剝線工具，各式鍍銀線材(Kynar Wire)');
+    } else {
+        t('pt-company-title','CHEN BOM TRADING CO., LTD.');
+        t('pt-eng-title','');
+        h('pt-info-block','22103 8F., No. 190, Sec. 3, Datong Rd., Xizhi Dist., New Taipei City<br>Tel：02-8647-2988　　Fax：02-8647-2977<br>E-MAIL：vectech_114@cbtrade.com.tw　　www.cbtrade.com.tw');
+        t('pt-main-title','QUOTATION');
+        t('pt-lbl-customer','Customer:'); t('pt-lbl-date','Date:');
+        t('pt-lbl-address','Address:'); t('pt-lbl-priceCondition','Price Terms:');
+        t('pt-lbl-phone','Tel:'); t('pt-lbl-paymentMethod','Payment:');
+        t('pt-lbl-fax','Fax:'); t('pt-lbl-deliveryTime','Delivery:');
+        t('pt-lbl-contact','Contact:');
+        t('t-lbl-subtotal','Subtotal'); t('t-lbl-tax','Tax (5%)'); t('t-lbl-total','Grand Total');
+        h('t-table-headers',
+            '<th class="c-no">No.</th><th class="c-model">Model</th>' +
+            '<th class="c-name">Description</th><th class="c-specs">Specifications</th>' +
+            '<th class="c-qty">Qty</th><th class="c-unit">Unit</th>' +
+            '<th class="c-price">Unit Price</th><th class="c-total">Total</th>');
+        t('pt-handler-lbl','Handled by：');
+        h('pt-footer-text',
+            '* BGA/SMT Repair Equipment　　* Solder Fume Extraction　　* Soldering/Desoldering Equipment　　* Dispensing Equipment<br>' +
+            '* ESD Protection Equipment &amp; Testers　　* Hand Tools　　* Wire Wrapping Tools &amp; Silver-plated Wires (Kynar Wire)');
+    }
+
+    // 客戶資訊
+    var setV = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v||''; };
+    setV('t-customer', val('customerName')); setV('t-date', val('date'));
+    setV('t-address', val('address'));       setV('t-priceCondition', val('priceCondition'));
+    setV('t-phone', val('phone'));           setV('t-paymentMethod', val('paymentMethod'));
+    setV('t-fax', val('fax'));              setV('t-deliveryTime', val('deliveryTime'));
+    setV('t-contact', val('contact'));      setV('t-handler', val('handler'));
+
+    // 產品列
+    var tbody = document.getElementById('t-rows');
+    tbody.innerHTML = '';
+    var sub = 0;
+    products.forEach(function(p){
+        var line = p.qty * p.price; sub += line;
+        var unit = isChinese ? p.unit : (EN_TRANSLATIONS[p.unit] || p.unit);
+        tbody.innerHTML +=
+            '<tr><td>'+p.no+'</td><td class="left">'+p.model+'</td>' +
+            '<td class="left">'+p.name+'</td><td class="left">'+p.specs+'</td>' +
+            '<td>'+p.qty+'</td><td>'+unit+'</td>' +
+            '<td>'+fmt(p.price)+'</td><td>'+fmt(line)+'</td></tr>';
+    });
+    var tax = sub * 0.05;
+    setV('t-sub', fmt(sub)); setV('t-tax', fmt(tax)); setV('t-total', fmt(sub+tax));
+
+    var notes = [val('note1'),val('note2'),val('note3')].filter(Boolean).join('\n');
+    setV('t-notes', notes);
+
+    return sub;
+}
+
 function buildPDF(products, lang){
     return new Promise(function(resolve, reject){
-        if(typeof window.jspdf==='undefined'){
-            reject('jsPDF 庫未載入'); return;
+        if(typeof window.jspdf==='undefined'||typeof html2canvas==='undefined'){
+            reject('PDF 庫未載入'); return;
         }
         try {
-            var isChinese = (lang === 'zh');
-            var doc = new window.jspdf.jsPDF('p','mm','a4');
-            var W = 210, M = 14; // 頁寬、左邊距
-            var y = 18;
+            fillPdfTemplate(products, lang);
+            var tpl = document.getElementById('pdfTemplate');
+            tpl.style.display = 'block';
 
-            // ── 公司標題 ──
-            doc.setFontSize(15);
-            doc.setFont('helvetica','bold');
-            var title = isChinese ? 'CHEN BOM TRADING CO., LTD. (承邦有限公司)' : 'CHEN BOM TRADING CO., LTD.';
-            doc.text(title, W/2, y, {align:'center'}); y+=7;
-
-            doc.setFontSize(8.5);
-            doc.setFont('helvetica','normal');
-            doc.text('22103 No.190, Sec.3, Datong Rd., Xizhi Dist., New Taipei City', W/2, y, {align:'center'}); y+=5;
-            doc.text('Tel: 02-8647-2988   Fax: 02-8647-2977   vectech_114@cbtrade.com.tw   www.cbtrade.com.tw', W/2, y, {align:'center'}); y+=6;
-
-            // ── 分隔線 ──
-            doc.setDrawColor(42,82,152);
-            doc.setLineWidth(0.8);
-            doc.line(M, y, W-M, y); y+=7;
-
-            // ── 報價單標題 ──
-            doc.setFontSize(14);
-            doc.setFont('helvetica','bold');
-            doc.setTextColor(42,82,152);
-            doc.text(isChinese ? 'QUOTATION  /  Bao Jia Dan' : 'QUOTATION', W/2, y, {align:'center'});
-            doc.setTextColor(0,0,0); y+=8;
-
-            // ── 客戶資訊 ──
-            doc.setFontSize(9);
-            doc.setFont('helvetica','normal');
-            var cL = M, cR = W/2+4;
-            var info = [
-                [isChinese?'Customer / Ke Hu:':'Customer:', val('customerName'),
-                 isChinese?'Date / Ri Qi:':'Date:', val('date')],
-                [isChinese?'Address / Di Zhi:':'Address:', val('address'),
-                 isChinese?'Price Terms:':'Price Terms:', val('priceCondition')||''],
-                [isChinese?'Tel / Dian Hua:':'Tel:', val('phone'),
-                 isChinese?'Payment:':'Payment:', val('paymentMethod')||''],
-                [isChinese?'Fax / Chuan Zhen:':'Fax:', val('fax'),
-                 isChinese?'Delivery:':'Delivery:', val('deliveryTime')||''],
-                [isChinese?'Contact / Lian Luo Ren:':'Contact:', val('contact'), '', '']
-            ];
-            info.forEach(function(row){
-                doc.setFont('helvetica','bold'); doc.text(row[0], cL, y);
-                doc.setFont('helvetica','normal'); doc.text(row[1]||'', cL+32, y);
-                if(row[2]){ doc.setFont('helvetica','bold'); doc.text(row[2], cR, y); }
-                if(row[3]){ doc.setFont('helvetica','normal'); doc.text(row[3]||'', cR+22, y); }
-                y+=5.5;
-            });
-            y+=3;
-
-            // ── 產品表格標題 ──
-            doc.setFillColor(42,82,152);
-            doc.rect(M, y, W-M*2, 7, 'F');
-            doc.setFont('helvetica','bold');
-            doc.setFontSize(8.5);
-            doc.setTextColor(255,255,255);
-            var cols = isChinese ?
-                ['No.','Model','Name / Pin Ming','Spec','Qty','Unit','Unit Price','Amount'] :
-                ['No.','Model','Description','Spec','Qty','Unit','Unit Price','Amount'];
-            var cw = [10,28,45,25,10,10,20,22]; // 欄寬
-            var cx = M;
-            cols.forEach(function(c,i){ doc.text(c, cx+1, y+5); cx+=cw[i]; });
-            doc.setTextColor(0,0,0); y+=7;
-
-            // ── 產品列 ──
-            doc.setFont('helvetica','normal');
-            doc.setFontSize(8.5);
-            var sub = 0;
-            products.forEach(function(p, idx){
-                var line = p.qty * p.price;
-                sub += line;
-                if(idx%2===0){ doc.setFillColor(245,247,255); doc.rect(M,y,W-M*2,6,'F'); }
-                doc.setDrawColor(200,200,200); doc.rect(M,y,W-M*2,6,'S');
-                cx = M;
-                var row = [
-                    String(p.no),
-                    p.model,
-                    p.name,
-                    p.specs||'',
-                    String(p.qty),
-                    p.unit||'',
-                    fmt(p.price),
-                    fmt(line)
-                ];
-                row.forEach(function(v,i){
-                    // 超長文字截斷
-                    var maxW = cw[i]-2;
-                    var txt = doc.splitTextToSize(v, maxW)[0] || v.substring(0,18);
-                    doc.text(txt, cx+1, y+4);
-                    cx+=cw[i];
+            // 用 setTimeout 讓 DOM 更新後再截圖
+            setTimeout(function(){
+                html2canvas(tpl, {
+                    scale: 1.5,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                }).then(function(canvas){
+                    tpl.style.display = 'none';
+                    var doc = new window.jspdf.jsPDF('p','mm','a4');
+                    var pw=210, ph=297;
+                    var iw=pw, ih=(canvas.height/canvas.width)*pw;
+                    if(ih>ph){ var r=ph/ih; iw*=r; ih=ph; }
+                    doc.addImage(canvas.toDataURL('image/jpeg',0.88),'JPEG',(pw-iw)/2,0,iw,ih);
+                    resolve(doc.output('blob'));
+                }).catch(function(e){
+                    tpl.style.display = 'none';
+                    reject(e.message||e);
                 });
-                y+=6;
-                // 換頁
-                if(y > 260){
-                    doc.addPage();
-                    y=20;
-                }
-            });
-            y+=4;
-
-            // ── 小計 / 稅金 / 總計 ──
-            var tax = sub*0.05;
-            var totals = [
-                [isChinese?'Subtotal / He Ji:':'Subtotal:', fmt(sub)],
-                [isChinese?'Tax 5% / Shui Jin:':'Tax (5%):', fmt(tax)],
-                [isChinese?'Total / Zong E:':'Grand Total:', fmt(sub+tax)]
-            ];
-            var tX = W - M - 55;
-            totals.forEach(function(t, i){
-                if(i===2){
-                    doc.setFont('helvetica','bold');
-                    doc.setFillColor(42,82,152);
-                    doc.rect(tX-2, y-1, 57, 7, 'F');
-                    doc.setTextColor(255,255,255);
-                }
-                doc.text(t[0], tX, y+4);
-                doc.text(t[1], W-M, y+4, {align:'right'});
-                if(i===2) doc.setTextColor(0,0,0);
-                doc.setFont('helvetica','normal');
-                y+=7;
-            });
-            y+=4;
-
-            // ── 備註 ──
-            var notes = [val('note1'),val('note2'),val('note3')].filter(Boolean);
-            if(notes.length){
-                doc.setFontSize(8);
-                notes.forEach(function(n){ doc.text(n, M, y); y+=5; });
-                y+=2;
-            }
-
-            // ── 頁尾 ──
-            doc.setFontSize(7.5);
-            doc.setTextColor(120,120,120);
-            doc.line(M, y, W-M, y); y+=4;
-            doc.text('* BGA/SMT維修設備  * 錫煙濾靜設備  * 高性能焊錫烙鐵除錫設備  * 點膠設備', M, y); y+=4;
-            doc.text('* ESD靜電防護設備，測試儀器  * 電子五金工具  * 繞線/剝線工具，各式鍍銀線材(Kynar Wire)', M, y);
-            doc.setTextColor(0,0,0);
-
-            resolve(doc.output('blob'));
+            }, 100);
         } catch(e) {
             reject(e.message);
         }
     });
 }
+
 
 window.generateQuote = function(lang, format){
     if(!val('customerName')){ alert('請填寫客戶名稱'); return; }
