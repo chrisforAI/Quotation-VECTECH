@@ -299,6 +299,9 @@ textarea { resize: vertical; min-height: 60px; }
         <h1>承邦有限公司</h1>
         <p>CHEN BOM TRADING CO., LTD.</p>
         <p style="margin-top:6px; font-size:0.85em;">報價單自動生成系統 V3.0 - 完整版</p>
+        <button onclick="openHistory()" style="margin-top:14px;background:rgba(255,255,255,0.2);color:white;border:2px solid rgba(255,255,255,0.6);padding:10px 28px;border-radius:20px;cursor:pointer;font-size:0.95em;font-weight:600;letter-spacing:1px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+            📚 歷史報價查詢
+        </button>
     </div>
     <div class="content">
         <!-- 客戶資訊 -->
@@ -315,6 +318,12 @@ textarea { resize: vertical; min-height: 60px; }
             <div class="form-row">
                 <div class="form-group"><label>客戶名稱 *</label><input type="text" id="customerName" required placeholder="例：健格科技"></div>
                 <div class="form-group"><label>日期 *</label><input type="date" id="date" required></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="display:flex;align-items:center;gap:10px;background:#f8f5ff;border:1.5px solid #c4b5fd;border-radius:8px;padding:10px 14px;">
+                    <span style="color:#7c3aed;font-weight:600;white-space:nowrap;">🔖 報價單號</span>
+                    <span id="quoteIdDisplay" style="font-weight:700;color:#6d28d9;letter-spacing:1px;font-size:1.05em;">（生成時自動產生）</span>
+                </div>
             </div>
             <div class="form-row">
                 <div class="form-group"><label>地址</label><input type="text" id="address" placeholder="例：11494台北市內湖區…"></div>
@@ -358,6 +367,25 @@ textarea { resize: vertical; min-height: 60px; }
             <button class="btn btn-blue" onclick="generateQuote('en','excel')">📄 生成英文 Excel</button>
             <button class="btn btn-green" onclick="generateQuote('zh','pdf')">📋 生成中文 PDF</button>
             <button class="btn btn-purple" onclick="generateQuote('en','pdf')">📋 生成英文 PDF</button>
+        </div>
+
+        <!-- 歷史報價 Modal -->
+        <div id="historyModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;overflow-y:auto;">
+            <div style="background:white;max-width:700px;margin:30px auto;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+                <div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;">
+                    <h3 style="margin:0;font-size:1.2em;">📚 歷史報價記錄</h3>
+                    <button onclick="closeHistory()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1.2em;">✕</button>
+                </div>
+                <div style="padding:20px;">
+                    <div style="display:flex;gap:8px;margin-bottom:16px;">
+                        <input id="historySearch" type="text" placeholder="搜尋客戶名稱 / 報價單號…" style="flex:1;padding:10px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:1em;" oninput="searchHistory()">
+                        <button onclick="searchHistory()" style="background:#667eea;color:white;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;">🔍</button>
+                    </div>
+                    <div id="historyList" style="max-height:500px;overflow-y:auto;">
+                        <div style="text-align:center;color:#aaa;padding:40px;">載入中…</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 分享區 -->
@@ -1677,33 +1705,92 @@ window.generateQuote = function(lang, format){
     var cname=val('customerName'), dstr=val('date').replace(/-/g,'');
     files.name=cname; files.date=dstr;
     var ext = (format==='excel') ? '.xlsx' : '.pdf';
-    var baseName = dstr+'_'+cname+'_報價單_'+langName+ext;
-    
-    if (format === 'excel') {
-        buildExcel(products, lang).then(function(blob){
-            downloadBlob(blob, baseName);
-            overlay.classList.remove('show');
-            showShareSection(products);
-        }).catch(function(err){
-            overlay.classList.remove('show');
-            alert('❌ 生成失敗：'+err);
+
+    // 取得報價單號後儲存
+    var quoteId = document.getElementById('quoteIdDisplay') ? 
+        document.getElementById('quoteIdDisplay').textContent : '';
+
+    function doSaveAndGenerate(id) {
+        // 儲存到 Google Sheets
+        var sub = products.reduce(function(s,p){return s+p.qty*p.price;},0);
+        var params = new URLSearchParams({
+            action: 'save',
+            quoteId: id,
+            date: val('date'),
+            customerName: val('customerName'),
+            contact: val('contact'),
+            phone: val('phone'),
+            fax: val('fax'),
+            address: val('address'),
+            priceCondition: val('priceCondition')||'',
+            payment: val('payment')||'',
+            delivery: val('delivery')||'',
+            notes: val('notes')||'',
+            items: JSON.stringify(products),
+            subtotal: Math.round(sub),
+            tax: Math.round(sub*0.05),
+            total: Math.round(sub*1.05)
         });
+        fetch(GS_URL + '?' + params.toString())
+            .then(function(r){ return r.json(); })
+            .then(function(res){
+                if(res.ok) {
+                    // 更新顯示的單號
+                    var el = document.getElementById('quoteIdDisplay');
+                    if(el) el.textContent = res.data.id;
+                    console.log('✅ 已儲存報價單:', res.data.id);
+                }
+            })
+            .catch(function(e){ console.warn('儲存失敗:', e); });
+
+        // 產生檔名（含報價單號）
+        var baseName = id + '_' + dstr + '_' + cname + '_報價單_' + langName + ext;
+
+        if (format === 'excel') {
+            buildExcel(products, lang).then(function(blob){
+                downloadBlob(blob, baseName);
+                overlay.classList.remove('show');
+                showShareSection(products, id);
+            }).catch(function(err){
+                overlay.classList.remove('show');
+                alert('❌ 生成失敗：'+err);
+            });
+        } else {
+            buildPDF(products, lang).then(function(pBlob){
+                downloadBlob(pBlob, baseName);
+                overlay.classList.remove('show');
+                showShareSection(products, id);
+            }).catch(function(err){
+                overlay.classList.remove('show');
+                alert('❌ 生成失敗：'+err);
+            });
+        }
+    }
+
+    // 如果已有單號直接用，否則向 GS 取新單號
+    if(quoteId && quoteId.startsWith('VT-')) {
+        doSaveAndGenerate(quoteId);
     } else {
-        buildPDF(products, lang).then(function(pBlob){
-            downloadBlob(pBlob, baseName);
-            overlay.classList.remove('show');
-            showShareSection(products);
-        }).catch(function(err){
-            overlay.classList.remove('show');
-            alert('❌ 生成失敗：'+err);
-        });
+        fetch(GS_URL + '?action=nextId')
+            .then(function(r){ return r.json(); })
+            .then(function(res){
+                var newId = (res.ok && res.data && res.data.id) ? res.data.id : 'VT-LOCAL-' + Date.now();
+                var el = document.getElementById('quoteIdDisplay');
+                if(el) el.textContent = newId;
+                doSaveAndGenerate(newId);
+            })
+            .catch(function(){
+                doSaveAndGenerate('VT-LOCAL-' + Date.now());
+            });
     }
 };
 
-function showShareSection(products) {
+function showShareSection(products, quoteId) {
     var sub=products.reduce(function(s,p){return s+p.qty*p.price;},0);
+    var idStr = quoteId ? '報價單號：' + quoteId + '\n' : '';
     document.getElementById('shareMsg').textContent =
         '【承邦有限公司 報價單】\n\n'+
+        idStr +
         '客戶：'+val('customerName')+'\n'+
         '日期：'+val('date')+'\n\n'+
         '總金額：NT$ '+fmt(sub*1.05)+' (含稅)\n\n'+
@@ -1771,67 +1858,148 @@ Promise.all([
 });
 })();
 
-// ===== Claude API 拍照/截圖辨識客戶資訊 =====
+// ===== Google Sheets 設定 =====
+var GS_URL = 'https://script.google.com/macros/s/AKfycbzuy6raiwYCd5r2I6MGiu75pEVn7fTgJJIWW0us1Okgd6VzXrujtzjoVy-hG-NI8bN5/exec';
+
+// ===== 歷史報價功能 =====
+window.openHistory = function() {
+    document.getElementById('historyModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    loadHistoryList('');
+};
+window.closeHistory = function() {
+    document.getElementById('historyModal').style.display = 'none';
+    document.body.style.overflow = '';
+};
+window.searchHistory = function() {
+    loadHistoryList(document.getElementById('historySearch').value.trim());
+};
+
+function loadHistoryList(search) {
+    var list = document.getElementById('historyList');
+    list.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;">載入中…</div>';
+    fetch(GS_URL + '?action=list&search=' + encodeURIComponent(search))
+        .then(function(r){ return r.json(); })
+        .then(function(res) {
+            if(!res.ok || !res.data || res.data.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;">📭 沒有找到報價記錄</div>';
+                return;
+            }
+            list.innerHTML = res.data.map(function(q) {
+                var total = q.total ? 'NT$ ' + Number(q.total).toLocaleString('zh-TW') : '-';
+                return '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:background 0.15s;" '+
+                    'onmouseover="this.style.background=\'#f0f9ff\'" onmouseout="this.style.background=\'white\'" '+
+                    'onclick="loadQuote(\''+q.id+'\')">'+
+                    '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;">'+
+                    '<span style="font-weight:700;color:#667eea;">'+q.id+'</span>'+
+                    '<span style="font-size:0.85em;color:#6b7280;">'+q.date+'</span>'+
+                    '</div>'+
+                    '<div style="font-weight:600;margin:5px 0 3px;">'+q.customerName+'</div>'+
+                    '<div style="display:flex;justify-content:space-between;font-size:0.85em;color:#6b7280;">'+
+                    '<span>'+(q.contact||'')+(q.phone?' ｜ '+q.phone:'')+'</span>'+
+                    '<span style="font-weight:600;color:#10b981;">'+total+'</span>'+
+                    '</div></div>';
+            }).join('');
+        })
+        .catch(function() {
+            list.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px;">❌ 載入失敗，請確認連線</div>';
+        });
+}
+
+window.loadQuote = function(id) {
+    fetch(GS_URL + '?action=get&id=' + encodeURIComponent(id))
+        .then(function(r){ return r.json(); })
+        .then(function(res) {
+            if(!res.ok || !res.data){ alert('找不到此報價單'); return; }
+            var q = res.data;
+            document.getElementById('customerName').value = q.customerName || '';
+            document.getElementById('contact').value      = q.contact || '';
+            document.getElementById('phone').value        = q.phone || '';
+            document.getElementById('fax').value          = q.fax || '';
+            document.getElementById('address').value      = q.address || '';
+            document.getElementById('date').value         = q.date || '';
+            ['priceCondition','payment','delivery','notes'].forEach(function(f){
+                var el = document.getElementById(f);
+                if(el) el.value = q[f] || '';
+            });
+            var el = document.getElementById('quoteIdDisplay');
+            if(el) el.textContent = q.id;
+            // 載入產品
+            if(q.items) {
+                try {
+                    var items = typeof q.items === 'string' ? JSON.parse(q.items) : q.items;
+                    var container = document.getElementById('productRows');
+                    if(container) container.innerHTML = '';
+                    window.productCount = 0;
+                    items.forEach(function(item) {
+                        addProduct();
+                        var rows = document.querySelectorAll('.product-row');
+                        var row = rows[rows.length-1];
+                        if(row) {
+                            var ins = row.querySelectorAll('input');
+                            if(ins[0]) ins[0].value = item.model||'';
+                            if(ins[1]) ins[1].value = item.name||'';
+                            if(ins[2]) ins[2].value = item.spec||'';
+                            if(ins[3]) ins[3].value = item.qty||1;
+                            if(ins[4]) ins[4].value = item.unit||'';
+                            if(ins[5]) ins[5].value = item.price||'';
+                        }
+                    });
+                    if(typeof updateTotal === 'function') updateTotal();
+                } catch(e){ console.warn('載入產品失敗:',e); }
+            }
+            closeHistory();
+            window.scrollTo({top:0,behavior:'smooth'});
+            alert('✅ 已載入：' + q.id + '\n修改後生成時會自動取得新單號');
+        })
+        .catch(function(e){ alert('載入失敗：'+e.message); });
+};
+
+// ===== OCR 拍照/截圖辨識（Claude API）=====
 function ocrRun(input) {
     var file = input.files[0];
-    if (!file) return;
+    if(!file) return;
     input.value = '';
-
     var overlay = document.getElementById('overlay');
-    var msg = document.getElementById('overlayMsg');
     overlay.classList.add('show');
-    msg.textContent = 'AI 辨識中，請稍候…';
-
+    document.getElementById('overlayMsg').textContent = 'AI 辨識中，請稍候…';
     var reader = new FileReader();
     reader.onload = function(e) {
-        var base64 = e.target.result.split(',')[1];
-        var mediaType = file.type || 'image/jpeg';
-
+        var b64  = e.target.result.split(',')[1];
+        var mime = file.type || 'image/jpeg';
         fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type':'application/json'},
             body: JSON.stringify({
                 model: 'claude-sonnet-4-6',
                 max_tokens: 500,
                 messages: [{
                     role: 'user',
                     content: [
-                        {
-                            type: 'image',
-                            source: { type: 'base64', media_type: mediaType, data: base64 }
-                        },
-                        {
-                            type: 'text',
-                            text: '這是一張客戶聯絡資訊的截圖或照片。請從中找出以下資訊，只回傳 JSON，不要其他文字：\n{"company":"公司名稱","contact":"聯絡人姓名","phone":"電話","fax":"傳真","address":"地址"}\n找不到的欄位填空字串。'
-                        }
+                        {type:'image', source:{type:'base64', media_type:mime, data:b64}},
+                        {type:'text',  text:'這是客戶聯絡資訊的截圖或照片。請找出以下資訊，只回傳 JSON，不要其他文字：\n{"company":"公司名稱","contact":"聯絡人姓名","phone":"電話","fax":"傳真","address":"地址"}\n找不到的欄位填空字串。'}
                     ]
                 }]
             })
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r){ return r.json(); })
         .then(function(data) {
             overlay.classList.remove('show');
-            if (data.error) { alert('API 錯誤：' + data.error.message); return; }
-            var text = data.content[0].text.trim();
-            // 取出 JSON 部分
-            var jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) { alert('⚠️ 無法解析辨識結果'); return; }
-            var info = JSON.parse(jsonMatch[0]);
+            if(data.error){ alert('API 錯誤：'+data.error.message); return; }
+            var jm = data.content[0].text.trim().match(/\{[\s\S]*\}/);
+            if(!jm){ alert('⚠️ 無法解析辨識結果，請重試'); return; }
+            var info = JSON.parse(jm[0]);
             var filled = [];
-            if (info.company)  { document.getElementById('customerName').value = info.company;  filled.push('公司名稱'); }
-            if (info.contact)  { document.getElementById('contact').value      = info.contact;  filled.push('聯絡人'); }
-            if (info.phone)    { document.getElementById('phone').value        = info.phone;    filled.push('電話'); }
-            if (info.fax)      { document.getElementById('fax').value          = info.fax;      filled.push('傳真'); }
-            if (info.address)  { document.getElementById('address').value      = info.address;  filled.push('地址'); }
-            if (filled.length > 0) {
-                alert('✅ 已自動填入：' + filled.join('、'));
-            } else {
-                alert('⚠️ 圖片中未偵測到客戶資訊，請確認圖片內容');
-            }
+            if(info.company){ document.getElementById('customerName').value=info.company; filled.push('公司名稱'); }
+            if(info.contact){ document.getElementById('contact').value=info.contact;      filled.push('聯絡人'); }
+            if(info.phone)  { document.getElementById('phone').value=info.phone;          filled.push('電話'); }
+            if(info.fax)    { document.getElementById('fax').value=info.fax;              filled.push('傳真'); }
+            if(info.address){ document.getElementById('address').value=info.address;      filled.push('地址'); }
+            alert(filled.length ? '✅ 已填入：'+filled.join('、') : '⚠️ 圖片中未偵測到客戶資訊');
         })
-        .catch(function(e) {
+        .catch(function(e){
             overlay.classList.remove('show');
-            alert('❌ 辨識失敗：' + e.message);
+            alert('❌ 辨識失敗：'+e.message);
         });
     };
     reader.readAsDataURL(file);
