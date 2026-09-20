@@ -237,6 +237,9 @@ textarea { resize: vertical; min-height: 60px; }
         E-MAIL：vectech_114@cbtrade.com.tw　　www.cbtrade.com.tw
     </div>
     <div class="pt-title" id="pt-main-title">報　價　單</div>
+    <div style="text-align:right;font-size:9px;color:#444;margin:-4px 0 4px 0;">
+        報價單號 / Quote No.：<span id="t-quote-id" style="font-weight:600;color:#2a5298;"></span>
+    </div>
 
     <table class="pt-info-table">
         <tr>
@@ -1560,7 +1563,7 @@ function buildExcel(products, lang){
 }
 
 // 生成 PDF
-function fillPdfTemplate(products, lang) {
+function fillPdfTemplate(products, lang, quoteId) {
     var isChinese = (lang === 'zh');
     var t = function(id){ var e=document.getElementById(id); if(e) e.textContent=arguments[1]||''; };
     var h = function(id){ var e=document.getElementById(id); if(e) e.innerHTML=arguments[1]||''; };
@@ -1614,6 +1617,9 @@ function fillPdfTemplate(products, lang) {
     setV('t-phone', val('phone'));           setV('t-paymentMethod', val('paymentMethod'));
     setV('t-fax', val('fax'));              setV('t-deliveryTime', val('deliveryTime'));
     setV('t-contact', val('contact'));      setV('t-handler', val('handler'));
+    // 報價單號
+    var qel = document.getElementById('t-quote-id');
+    if(qel) qel.textContent = quoteId || '';
 
     // 產品列
     var tbody = document.getElementById('t-rows');
@@ -1637,13 +1643,13 @@ function fillPdfTemplate(products, lang) {
     return sub;
 }
 
-function buildPDF(products, lang){
+function buildPDF(products, lang, quoteId){
     return new Promise(function(resolve, reject){
         if(typeof window.jspdf==='undefined'||typeof html2canvas==='undefined'){
             reject('PDF 庫未載入'); return;
         }
         try {
-            fillPdfTemplate(products, lang);
+            fillPdfTemplate(products, lang, quoteId);
             var tpl = document.getElementById('pdfTemplate');
             tpl.style.display = 'block';
 
@@ -1719,7 +1725,7 @@ window.generateQuote = function(lang, format){
         if(format === 'excel') {
             buildExcel(products, lang).then(onDone).catch(onFail);
         } else {
-            buildPDF(products, lang).then(onDone).catch(onFail);
+            buildPDF(products, lang, id).then(onDone).catch(onFail);
         }
     }
 
@@ -1735,44 +1741,70 @@ window.generateQuote = function(lang, format){
             doGenerate(fallbackId);
         }, 3000);
 
-        fetch(GS_URL + '?action=nextId')
-            .then(function(r){ return r.json(); })
-            .then(function(res){
-                if(timedOut) return;
-                clearTimeout(timer);
-                var id = (res.ok && res.data && res.data.id) ? res.data.id : fallbackId;
-                doGenerate(id);
-            })
-            .catch(function(){
-                if(timedOut) return;
-                clearTimeout(timer);
-                doGenerate(fallbackId);
-            });
+        gsGetNextId(function(newId){
+            if(timedOut) return;
+            clearTimeout(timer);
+            doGenerate(newId || fallbackId);
+        });
     }
 };
 
 
-// 背景儲存到 Google Sheets（不阻擋主流程）
+// 背景儲存到 Google Sheets（用 script tag 繞過 CORS）
 function saveToGS(products, id) {
     try {
         var sub = products.reduce(function(s,p){return s+p.qty*p.price;},0);
-        var params = new URLSearchParams({
+        var params = {
             action: 'save', quoteId: id,
             date: val('date'), customerName: val('customerName'),
             contact: val('contact'), phone: val('phone'),
             fax: val('fax'), address: val('address'),
-            priceCondition: (document.getElementById('priceCondition')||{value:''}).value,
-            payment: (document.getElementById('paymentMethod')||{value:''}).value,
-            delivery: (document.getElementById('deliveryTime')||{value:''}).value,
-            notes: (document.getElementById('notes')||{value:''}).value,
+            priceCondition: val('priceCondition'),
+            payment: val('paymentMethod'),
+            delivery: val('deliveryTime'),
             items: JSON.stringify(products),
-            subtotal: Math.round(sub), tax: Math.round(sub*0.05), total: Math.round(sub*1.05)
-        });
-        fetch(GS_URL + '?' + params.toString())
-            .then(function(r){ return r.json(); })
-            .then(function(res){ if(res.ok) console.log('✅ GS 儲存成功:', res.data.id); })
-            .catch(function(e){ console.warn('GS 儲存失敗（不影響使用）:', e.message); });
+            subtotal: Math.round(sub),
+            tax: Math.round(sub*0.05),
+            total: Math.round(sub*1.05)
+        };
+        var qs = Object.keys(params).map(function(k){
+            return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
+        }).join('&');
+        // 用 no-cors fetch（不需要讀回應，只要寫入）
+        fetch(GS_URL + '?' + qs, {mode:'no-cors'})
+            .then(function(){ console.log('✅ GS 儲存請求已送出：' + id); })
+            .catch(function(e){ console.warn('GS 儲存失敗:', e.message); });
     } catch(e) { console.warn('saveToGS 錯誤:', e.message); }
+}
+
+// 取下一個報價單號（用 script tag JSONP 繞過 CORS）
+function gsGetNextId(callback) {
+    var cbName = 'gsCallback_' + Date.now();
+    var timer = setTimeout(function(){
+        delete window[cbName];
+        var s = document.getElementById(cbName);
+        if(s) s.remove();
+        callback(null); // timeout → 用本機號
+    }, 4000);
+
+    window[cbName] = function(res) {
+        clearTimeout(timer);
+        delete window[cbName];
+        var s = document.getElementById(cbName);
+        if(s) s.remove();
+        callback(res && res.data && res.data.id ? res.data.id : null);
+    };
+
+    var script = document.createElement('script');
+    script.id = cbName;
+    script.src = GS_URL + '?action=nextId&callback=' + cbName;
+    document.head.appendChild(script);
+    script.onerror = function(){
+        clearTimeout(timer);
+        delete window[cbName];
+        script.remove();
+        callback(null);
+    };
 }
 
 function showShareSection(products, quoteId) {
