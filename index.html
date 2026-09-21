@@ -1735,7 +1735,7 @@ window.generateQuote = function(lang, format){
     } else {
         // 向 GS 取新單號，3 秒 timeout 後直接用本機號
         var timedOut = false;
-        var fallbackId = 'VT-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-4);
+        var fallbackId = getFallbackId();
         var timer = setTimeout(function(){
             timedOut = true;
             doGenerate(fallbackId);
@@ -1876,7 +1876,46 @@ function fallbackCopy(text, btn) {
 document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('date').valueAsDate = new Date();
     addProduct();
+    // 頁面開啟時自動取得報價單號
+    initQuoteId();
 });
+
+function getTodayPrefix(){
+    var now = new Date();
+    return 'V' + now.getFullYear() +
+        String(now.getMonth()+1).padStart(2,'0') +
+        String(now.getDate()).padStart(2,'0');
+}
+
+function getFallbackId(){
+    // GS 無法連線時用本機產生（讀 localStorage 記錄今日最後號碼）
+    var prefix = getTodayPrefix();
+    var key = 'lastQuoteNum_' + prefix;
+    var last = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, last);
+    return prefix + String(last).padStart(4,'0');
+}
+
+function initQuoteId(){
+    var el = document.getElementById('quoteIdDisplay');
+    if(!el) return;
+    el.textContent = '取號中…';
+    var done = false;
+
+    // 4 秒 timeout → 用本機號
+    var timer = setTimeout(function(){
+        if(done) return;
+        done = true;
+        el.textContent = getFallbackId();
+    }, 4000);
+
+    gsGetNextId(function(id){
+        if(done) return;
+        done = true;
+        clearTimeout(timer);
+        el.textContent = id || getFallbackId();
+    });
+}
 
 function loadScript(src){
     return new Promise(function(ok,fail){
@@ -1903,7 +1942,7 @@ Promise.all([
 })();
 
 // ===== Google Sheets 設定 =====
-var GS_URL = 'https://script.google.com/macros/s/AKfycbxKT4rApCjlAKZleif8Wl-S_JDyQeSTMz-7oIzFX7ebrDbDWxGLuZd0P40WHbRnsjml/exec';
+var GS_URL = 'https://script.google.com/macros/s/AKfycbxTqQ15cxjdeW6TfuSykIbzuJrW8WZet8dRTqbAfynvxiBRaFwLkO-Uxd7kllU-bsUk/exec';
 
 // ===== 歷史報價功能 =====
 window.openHistory = function() {
