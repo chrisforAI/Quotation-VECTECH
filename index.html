@@ -1750,7 +1750,7 @@ window.generateQuote = function(lang, format){
 };
 
 
-// 背景儲存到 Google Sheets（用 script tag 繞過 CORS）
+// 儲存到 Google Sheets（JSONP 方式，繞過 CORS）
 function saveToGS(products, id) {
     try {
         var sub = products.reduce(function(s,p){return s+p.qty*p.price;},0);
@@ -1762,18 +1762,40 @@ function saveToGS(products, id) {
             priceCondition: val('priceCondition'),
             payment: val('paymentMethod'),
             delivery: val('deliveryTime'),
+            notes: '',
             items: JSON.stringify(products),
             subtotal: Math.round(sub),
             tax: Math.round(sub*0.05),
             total: Math.round(sub*1.05)
         };
+        var cbName = 'gsSaveCallback_' + Date.now();
+        window[cbName] = function(res){
+            delete window[cbName];
+            var s = document.getElementById(cbName);
+            if(s) s.remove();
+            if(res && res.ok) {
+                console.log('✅ GS 儲存成功:', res.data && res.data.id);
+                // 更新顯示的單號
+                var el = document.getElementById('quoteIdDisplay');
+                if(el && res.data && res.data.id) el.textContent = res.data.id;
+            } else {
+                console.warn('GS 儲存回應異常:', res);
+            }
+        };
         var qs = Object.keys(params).map(function(k){
             return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
         }).join('&');
-        // 用 no-cors fetch（不需要讀回應，只要寫入）
-        fetch(GS_URL + '?' + qs, {mode:'no-cors'})
-            .then(function(){ console.log('✅ GS 儲存請求已送出：' + id); })
-            .catch(function(e){ console.warn('GS 儲存失敗:', e.message); });
+        var script = document.createElement('script');
+        script.id = cbName;
+        script.src = GS_URL + '?' + qs + '&callback=' + cbName;
+        script.onerror = function(){
+            console.warn('GS 儲存 script 載入失敗');
+            delete window[cbName];
+            script.remove();
+        };
+        // 10 秒後清理
+        setTimeout(function(){ delete window[cbName]; var s=document.getElementById(cbName); if(s)s.remove(); }, 10000);
+        document.head.appendChild(script);
     } catch(e) { console.warn('saveToGS 錯誤:', e.message); }
 }
 
@@ -1881,7 +1903,7 @@ Promise.all([
 })();
 
 // ===== Google Sheets 設定 =====
-var GS_URL = 'https://script.google.com/macros/s/AKfycbzuy6raiwYCd5r2I6MGiu75pEVn7fTgJJIWW0us1Okgd6VzXrujtzjoVy-hG-NI8bN5/exec';
+var GS_URL = 'https://script.google.com/macros/s/AKfycbxKT4rApCjlAKZleif8Wl-S_JDyQeSTMz-7oIzFX7ebrDbDWxGLuZd0P40WHbRnsjml/exec';
 
 // ===== 歷史報價功能 =====
 window.openHistory = function() {
