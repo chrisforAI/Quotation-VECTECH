@@ -307,6 +307,15 @@ textarea { resize: vertical; min-height: 60px; }
         </button>
     </div>
     <div class="content">
+        <!-- 最近報價 -->
+        <div class="section" id="recentSection">
+            <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>🕘 最近報價（點一下直接帶入，可快速複製）</span>
+                <button type="button" onclick="loadRecent()" style="background:#e5e7eb;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:0.8em;">↻ 重新整理</button>
+            </div>
+            <div id="recentList" style="display:grid;gap:8px;"><div style="color:#aaa;font-size:0.9em;">載入中…</div></div>
+        </div>
+
         <!-- 客戶資訊 -->
         <div class="section">
             <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -1681,6 +1690,7 @@ function buildPDF(products, lang, quoteId){
 
 
 window.generateQuote = function(lang, format){
+    window.__ctx = 'generate '+lang+' '+format;
     if(!val('customerName')){ alert('請填寫客戶名稱'); return; }
     var products = collectProducts();
     if(!products.length){ alert('請至少添加一個產品'); return; }
@@ -1719,7 +1729,7 @@ window.generateQuote = function(lang, format){
         }
         function onFail(err) {
             overlay.classList.remove('show');
-            alert('❌ 生成失敗：' + err);
+            logError('generate', err, window.__ctx); alert('❌ 生成失敗：' + err);
         }
 
         if(format === 'excel') {
@@ -1755,47 +1765,26 @@ function saveToGS(products, id) {
     try {
         var sub = products.reduce(function(s,p){return s+p.qty*p.price;},0);
         var params = {
-            action: 'save', quoteId: id,
-            date: val('date'), customerName: val('customerName'),
-            contact: val('contact'), phone: val('phone'),
-            fax: val('fax'), address: val('address'),
-            priceCondition: val('priceCondition'),
-            payment: val('paymentMethod'),
-            delivery: val('deliveryTime'),
-            notes: '',
-            items: JSON.stringify(products),
-            subtotal: Math.round(sub),
-            tax: Math.round(sub*0.05),
-            total: Math.round(sub*1.05)
+            action:'save', quoteId:id,
+            date:val('date'), customerName:val('customerName'),
+            contact:val('contact'), phone:val('phone'),
+            fax:val('fax'), address:val('address'),
+            priceCondition:val('priceCondition'),
+            payment:val('paymentMethod'), delivery:val('deliveryTime'),
+            notes:'', items:JSON.stringify(products),
+            subtotal:Math.round(sub), tax:Math.round(sub*0.05), total:Math.round(sub*1.05)
         };
-        var cbName = 'gsSaveCallback_' + Date.now();
-        window[cbName] = function(res){
-            delete window[cbName];
-            var s = document.getElementById(cbName);
-            if(s) s.remove();
-            if(res && res.ok) {
-                console.log('✅ GS 儲存成功:', res.data && res.data.id);
-                // 更新顯示的單號
-                var el = document.getElementById('quoteIdDisplay');
-                if(el && res.data && res.data.id) el.textContent = res.data.id;
-            } else {
-                console.warn('GS 儲存回應異常:', res);
-            }
-        };
-        var qs = Object.keys(params).map(function(k){
-            return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
-        }).join('&');
-        var script = document.createElement('script');
-        script.id = cbName;
-        script.src = GS_URL + '?' + qs + '&callback=' + cbName;
-        script.onerror = function(){
-            console.warn('GS 儲存 script 載入失敗');
-            delete window[cbName];
-            script.remove();
-        };
-        // 10 秒後清理
-        setTimeout(function(){ delete window[cbName]; var s=document.getElementById(cbName); if(s)s.remove(); }, 10000);
-        document.head.appendChild(script);
+        var name='gsSaveFrame_'+Date.now();
+        var iframe=document.createElement('iframe');
+        iframe.name=name; iframe.style.display='none';
+        var form=document.createElement('form');
+        form.method='POST'; form.action=GS_URL; form.target=name; form.style.display='none';
+        Object.keys(params).forEach(function(k){
+            var i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=params[k]; form.appendChild(i);
+        });
+        document.body.appendChild(iframe); document.body.appendChild(form);
+        form.submit();
+        setTimeout(function(){ form.remove(); iframe.remove(); loadRecent(); }, 4000);
     } catch(e) { console.warn('saveToGS 錯誤:', e.message); }
 }
 
@@ -1878,6 +1867,7 @@ document.addEventListener('DOMContentLoaded', function(){
     addProduct();
     // 頁面開啟時自動取得報價單號
     initQuoteId();
+    loadRecent();
 });
 
 function getTodayPrefix(){
@@ -1942,7 +1932,7 @@ Promise.all([
 })();
 
 // ===== Google Sheets 設定 =====
-var GS_URL = 'https://script.google.com/macros/s/AKfycbxTqQ15cxjdeW6TfuSykIbzuJrW8WZet8dRTqbAfynvxiBRaFwLkO-Uxd7kllU-bsUk/exec';
+var GS_URL = 'https://script.google.com/macros/s/AKfycbzsjISiAunpZQ1nsLVU8d_zGG3XLMBrAggOZFTz7oGtlmcgrGSkvi-r2W0EGWX3zl7z/exec';
 
 // ===== 歷史報價功能 =====
 window.openHistory = function() {
@@ -1958,92 +1948,160 @@ window.searchHistory = function() {
     loadHistoryList(document.getElementById('historySearch').value.trim());
 };
 
+// 統一 JSONP 呼叫函數
+function gsCall(params, callback) {
+    var cbName = 'gsJSONP_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    var done = false;
+    var timer = setTimeout(function(){
+        if(done) return; done = true;
+        delete window[cbName];
+        var s = document.getElementById(cbName); if(s) s.remove();
+        callback(null);
+    }, 8000);
+    window[cbName] = function(res){
+        if(done) return; done = true;
+        clearTimeout(timer);
+        delete window[cbName];
+        var s = document.getElementById(cbName); if(s) s.remove();
+        callback(res);
+    };
+    var qs = Object.keys(params).map(function(k){
+        return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
+    }).join('&');
+    var script = document.createElement('script');
+    script.id = cbName;
+    script.src = GS_URL + '?' + qs + '&callback=' + cbName;
+    script.onerror = function(){
+        if(done) return; done = true;
+        clearTimeout(timer);
+        delete window[cbName]; script.remove();
+        callback(null);
+    };
+    document.head.appendChild(script);
+}
+
+function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function parseItems(q){
+    try { return typeof q.items==='string' ? JSON.parse(q.items||'[]') : (q.items||[]); } catch(e){ return []; }
+}
+function itemsSummary(q){
+    var items = parseItems(q);
+    if(!items.length) return '（無產品資料）';
+    var s = items.slice(0,2).map(function(it){ return esc(it.model)+' ×'+esc(it.qty); }).join('、');
+    if(items.length>2) s += ' …等'+items.length+'項';
+    return s;
+}
+function fmtDateStr(d){
+    if(!d) return '';
+    var s = String(d);
+    if(s.indexOf('T')>0){ var dt=new Date(s); if(!isNaN(dt)) return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+    return s.slice(0,10);
+}
+function quoteCard(q, onclickJs){
+    var total = q.total ? 'NT$ '+Number(q.total).toLocaleString('zh-TW') : '';
+    return '<div onclick="'+onclickJs+'" style="border:1px solid #e5e7eb;border-radius:10px;padding:10px 14px;cursor:pointer;background:#fff;">'+
+        '<div style="display:flex;justify-content:space-between;gap:8px;font-size:0.8em;color:#6b7280;"><span style="color:#667eea;font-weight:700;">'+esc(q.id)+'</span><span>'+esc(fmtDateStr(q.date))+'</span></div>'+
+        '<div style="font-weight:600;margin:3px 0;">'+esc(q.customerName)+'</div>'+
+        '<div style="display:flex;justify-content:space-between;gap:8px;font-size:0.85em;color:#555;"><span>'+itemsSummary(q)+'</span><span style="color:#10b981;font-weight:600;white-space:nowrap;">'+total+'</span></div>'+
+        '</div>';
+}
+function showToast(msg){
+    var t=document.createElement('div');
+    t.textContent=msg;
+    t.style.cssText='position:fixed;left:50%;bottom:40px;transform:translateX(-50%);background:#333;color:#fff;padding:10px 18px;border-radius:20px;z-index:99999;font-size:0.9em;';
+    document.body.appendChild(t);
+    setTimeout(function(){ t.remove(); },2500);
+}
+var GS_FAIL_MSG = '<div style="text-align:center;color:#ef4444;padding:24px;line-height:1.7;">❌ 連不上 Google Sheet<br><span style="font-size:0.85em;color:#6b7280;">請確認 Apps Script 已部署為「所有人」可存取，且網址是最新版本</span></div>';
+
+window.__hist = [];
+window.__recent = [];
+
+function loadRecent(){
+    var box = document.getElementById('recentList');
+    if(!box) return;
+    box.innerHTML = '<div style="color:#aaa;font-size:0.9em;">載入中…</div>';
+    gsCall({action:'list', search:''}, function(res){
+        if(!res){ box.innerHTML = GS_FAIL_MSG; return; }
+        var data = (res.ok && res.data) ? res.data : [];
+        window.__recent = data.slice(0,3);
+        if(!window.__recent.length){ box.innerHTML = '<div style="color:#aaa;font-size:0.9em;">還沒有報價記錄（生成第一張報價單後就會出現在這裡）</div>'; return; }
+        box.innerHTML = window.__recent.map(function(q,i){ return quoteCard(q,'pickRecent('+i+')'); }).join('');
+    });
+}
+window.pickRecent = function(i){ applyQuote(window.__recent[i]); };
+window.pickHist   = function(i){ applyQuote(window.__hist[i]); closeHistory(); };
+
 function loadHistoryList(search) {
     var list = document.getElementById('historyList');
     list.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;">載入中…</div>';
-    fetch(GS_URL + '?action=list&search=' + encodeURIComponent(search))
-        .then(function(r){ return r.json(); })
-        .then(function(res) {
-            if(!res.ok || !res.data || res.data.length === 0) {
-                list.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;">📭 沒有找到報價記錄</div>';
-                return;
-            }
-            list.innerHTML = res.data.map(function(q) {
-                var total = q.total ? 'NT$ ' + Number(q.total).toLocaleString('zh-TW') : '-';
-                return '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:background 0.15s;" '+
-                    'onmouseover="this.style.background=\'#f0f9ff\'" onmouseout="this.style.background=\'white\'" '+
-                    'onclick="loadQuote(\''+q.id+'\')">'+
-                    '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;">'+
-                    '<span style="font-weight:700;color:#667eea;">'+q.id+'</span>'+
-                    '<span style="font-size:0.85em;color:#6b7280;">'+q.date+'</span>'+
-                    '</div>'+
-                    '<div style="font-weight:600;margin:5px 0 3px;">'+q.customerName+'</div>'+
-                    '<div style="display:flex;justify-content:space-between;font-size:0.85em;color:#6b7280;">'+
-                    '<span>'+(q.contact||'')+(q.phone?' ｜ '+q.phone:'')+'</span>'+
-                    '<span style="font-weight:600;color:#10b981;">'+total+'</span>'+
-                    '</div></div>';
-            }).join('');
-        })
-        .catch(function() {
-            list.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px;">❌ 載入失敗，請確認連線</div>';
-        });
+    gsCall({ action:'list', search: search||'' }, function(res) {
+        if(!res){ list.innerHTML = GS_FAIL_MSG; return; }
+        window.__hist = (res.ok && res.data) ? res.data : [];
+        if(!window.__hist.length){ list.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;">📭 沒有找到報價記錄</div>'; return; }
+        list.innerHTML = window.__hist.map(function(q,i){ return quoteCard(q,'pickHist('+i+')'); }).join('');
+    });
 }
 
-window.loadQuote = function(id) {
-    fetch(GS_URL + '?action=get&id=' + encodeURIComponent(id))
-        .then(function(r){ return r.json(); })
-        .then(function(res) {
-            if(!res.ok || !res.data){ alert('找不到此報價單'); return; }
-            var q = res.data;
-            document.getElementById('customerName').value = q.customerName || '';
-            document.getElementById('contact').value      = q.contact || '';
-            document.getElementById('phone').value        = q.phone || '';
-            document.getElementById('fax').value          = q.fax || '';
-            document.getElementById('address').value      = q.address || '';
-            document.getElementById('date').value         = q.date || '';
-            var fieldMap = {priceCondition:'priceCondition', payment:'paymentMethod', delivery:'deliveryTime', notes:'note1'};
-            Object.keys(fieldMap).forEach(function(k){
-                var el2 = document.getElementById(fieldMap[k]);
-                if(el2) el2.value = q[k] || '';
-            });
-            var el = document.getElementById('quoteIdDisplay');
-            if(el) el.textContent = q.id;
-            // 載入產品
-            if(q.items) {
-                try {
-                    var items = typeof q.items === 'string' ? JSON.parse(q.items) : q.items;
-                    var container = document.getElementById('productRows');
-                    if(container) container.innerHTML = '';
-                    window.productCount = 0;
-                    items.forEach(function(item) {
-                        addProduct();
-                        var rows = document.querySelectorAll('.product-row');
-                        var row = rows[rows.length-1];
-                        if(row) {
-                            var ins = row.querySelectorAll('input');
-                            if(ins[0]) ins[0].value = item.model||'';
-                            if(ins[1]) ins[1].value = item.name||'';
-                            if(ins[2]) ins[2].value = item.spec||'';
-                            if(ins[3]) ins[3].value = item.qty||1;
-                            if(ins[4]) ins[4].value = item.unit||'';
-                            if(ins[5]) ins[5].value = item.price||'';
-                        }
-                    });
-                    if(typeof updateTotal === 'function') updateTotal();
-                } catch(e){ console.warn('載入產品失敗:',e); }
-            }
-            closeHistory();
-            window.scrollTo({top:0,behavior:'smooth'});
-            alert('✅ 已載入：' + q.id + '\n修改後生成時會自動取得新單號');
-        })
-        .catch(function(e){ alert('載入失敗：'+e.message); });
-};
+// 把舊報價單的資料帶入表單（報價單號維持「這一張的新單號」，不會覆蓋舊單）
+function applyQuote(q){
+    if(!q) return;
+    var set=function(id,v){ var e=document.getElementById(id); if(e) e.value=v||''; };
+    set('customerName',q.customerName); set('contact',q.contact); set('phone',q.phone);
+    set('fax',q.fax); set('address',q.address);
+    set('priceCondition',q.priceCondition); set('paymentMethod',q.payment); set('deliveryTime',q.delivery);
 
-// ===== OCR 拍照/截圖辨識（Claude API）=====
+    var wrap=document.getElementById('productsWrap');
+    if(wrap) wrap.innerHTML='';
+    productCount=0;
+    var items=parseItems(q);
+    if(!items.length) items=[{}];
+    items.forEach(function(it){
+        addProduct();
+        var el=wrap.lastElementChild;
+        var f=function(cls,v){ var x=el.querySelector(cls); if(x) x.value=(v==null?'':v); };
+        f('.p-model',it.model); f('.p-name',it.name); f('.p-qty',it.qty||1);
+        f('.p-unit',it.unit||'台'); f('.p-price',it.price); f('.p-remark',it.remark);
+        if(it.specs){
+            f('.p-other-spec',it.specs);
+            var sf=el.querySelector('.specs-fields'), btn=el.querySelector('.specs-toggle');
+            if(sf&&btn){ sf.classList.add('show'); btn.textContent='− 隱藏設備規格'; }
+        }
+    });
+    window.scrollTo({top:0,behavior:'smooth'});
+    showToast('✅ 已帶入 '+(q.customerName||'')+'，日期與單號為本次新單');
+}
+
+// ===== OCR：上傳、拍照、Ctrl+V 貼圖 =====
 function ocrRun(input) {
     var file = input.files[0];
     if(!file) return;
     input.value = '';
+    ocrProcessFile(file);
+}
+
+// Ctrl+V 或手機長按貼上圖片
+document.addEventListener('paste', function(e) {
+    var items = e.clipboardData && e.clipboardData.items;
+    if(!items) return;
+    for(var i=0; i<items.length; i++){
+        if(items[i].type.indexOf('image') !== -1){
+            var file = items[i].getAsFile();
+            if(file){
+                e.preventDefault();
+                var overlay = document.getElementById('overlay');
+                overlay.classList.add('show');
+                document.getElementById('overlayMsg').textContent = '偵測到貼上的圖片，AI 辨識中…';
+                setTimeout(function(){ ocrProcessFile(file); }, 200);
+            }
+            break;
+        }
+    }
+});
+
+function ocrProcessFile(file) {
+    window.__ctx = 'ocr';
     var overlay = document.getElementById('overlay');
     overlay.classList.add('show');
     document.getElementById('overlayMsg').textContent = 'AI 辨識中，請稍候…';
@@ -2056,12 +2114,12 @@ function ocrRun(input) {
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({
                 model: 'claude-sonnet-4-6',
-                max_tokens: 500,
+                max_tokens: 800,
                 messages: [{
                     role: 'user',
                     content: [
                         {type:'image', source:{type:'base64', media_type:mime, data:b64}},
-                        {type:'text',  text:'這是客戶聯絡資訊的截圖或照片。請找出以下資訊，只回傳 JSON，不要其他文字：\n{"company":"公司名稱","contact":"聯絡人姓名","phone":"電話","fax":"傳真","address":"地址"}\n找不到的欄位填空字串。'}
+                        {type:'text', text:'這是一張截圖，可能是 LINE 對話、email、名片或表格。請仔細找出客戶聯絡資訊，只回傳 JSON，不要其他文字：\n{"company":"公司名稱（如台灣譜電科技股份有限公司）","contact":"聯絡人姓名","phone":"電話（含分機）","fax":"傳真","address":"地址"}\n注意：公司名稱可能出現在對話氣泡內文中，統編不是電話，找不到的欄位填空字串。'}
                     ]
                 }]
             })
@@ -2069,25 +2127,64 @@ function ocrRun(input) {
         .then(function(r){ return r.json(); })
         .then(function(data) {
             overlay.classList.remove('show');
-            if(data.error){ alert('API 錯誤：'+data.error.message); return; }
+            if(data.error){ logError('ocr-api', data.error.message, ''); alert('API 錯誤：'+data.error.message); return; }
             var jm = data.content[0].text.trim().match(/\{[\s\S]*\}/);
             if(!jm){ alert('⚠️ 無法解析辨識結果，請重試'); return; }
             var info = JSON.parse(jm[0]);
             var filled = [];
-            if(info.company){ document.getElementById('customerName').value=info.company; filled.push('公司名稱'); }
-            if(info.contact){ document.getElementById('contact').value=info.contact;      filled.push('聯絡人'); }
-            if(info.phone)  { document.getElementById('phone').value=info.phone;          filled.push('電話'); }
-            if(info.fax)    { document.getElementById('fax').value=info.fax;              filled.push('傳真'); }
-            if(info.address){ document.getElementById('address').value=info.address;      filled.push('地址'); }
-            alert(filled.length ? '✅ 已填入：'+filled.join('、') : '⚠️ 圖片中未偵測到客戶資訊');
+            if(info.company && info.company.trim()){ document.getElementById('customerName').value=info.company.trim(); filled.push('公司名稱'); }
+            if(info.contact && info.contact.trim()){ document.getElementById('contact').value=info.contact.trim();      filled.push('聯絡人'); }
+            if(info.phone   && info.phone.trim())  { document.getElementById('phone').value=info.phone.trim();         filled.push('電話'); }
+            if(info.fax     && info.fax.trim())    { document.getElementById('fax').value=info.fax.trim();             filled.push('傳真'); }
+            if(info.address && info.address.trim()){ document.getElementById('address').value=info.address.trim();     filled.push('地址'); }
+            if(filled.length){
+                alert('✅ 已填入：'+filled.join('、')+'\n\n如有錯誤請手動修改');
+            } else {
+                alert('⚠️ 圖片中未偵測到客戶資訊\n提示：確認截圖中有公司名稱、電話等文字');
+            }
         })
         .catch(function(e){
             overlay.classList.remove('show');
-            alert('❌ 辨識失敗：'+e.message);
+            logError('ocr', e.message, 'fetch'); alert('❌ 辨識失敗：'+e.message);
         });
     };
     reader.readAsDataURL(file);
 }
+
+
+
+// ===== 錯誤回報（自動記到 Google Sheet「錯誤記錄」分頁）=====
+var APP_VERSION = 'v3.1-20261002';
+var __errCount = 0, __errSeen = {};
+function logError(type, message, extra){
+    try{
+        message = String(message==null?'':message).slice(0,500);
+        var key = type+'|'+message;
+        if(__errSeen[key] || __errCount >= 10) return;   // 同一個錯誤只記一次，每次開頁最多 10 筆
+        __errSeen[key] = 1; __errCount++;
+        var params = {
+            action:'logError', type:type, message:message,
+            where:String(extra||'').slice(0,300),
+            ctx:String(window.__ctx||''),
+            version:APP_VERSION,
+            ua:String(navigator.userAgent||'').slice(0,200),
+            page:String(location.href||'').slice(0,200)
+        };
+        var name='gsErrFrame_'+Date.now()+'_'+__errCount;
+        var iframe=document.createElement('iframe'); iframe.name=name; iframe.style.display='none';
+        var form=document.createElement('form'); form.method='POST'; form.action=GS_URL; form.target=name; form.style.display='none';
+        Object.keys(params).forEach(function(k){ var i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=params[k]; form.appendChild(i); });
+        document.body.appendChild(iframe); document.body.appendChild(form);
+        form.submit();
+        setTimeout(function(){ form.remove(); iframe.remove(); }, 5000);
+    }catch(e){ /* 回報本身出錯就放棄，避免無限循環 */ }
+}
+window.addEventListener('error', function(ev){
+    logError('js-error', ev.message, (ev.filename||'')+':'+(ev.lineno||'')+':'+(ev.colno||''));
+});
+window.addEventListener('unhandledrejection', function(ev){
+    var r = ev.reason; logError('promise', (r && r.message) ? r.message : r, '');
+});
 
 </script>
 </body>
