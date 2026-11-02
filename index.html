@@ -66,7 +66,13 @@ textarea { resize: vertical; min-height: 60px; }
     padding: 2px 8px; border-radius: 4px; font-size: 0.75em;
     margin-left: 8px; vertical-align: middle;
 }
-.product-item .remove-btn {
+.product-item .row-tools { position: absolute; top: 10px; right: 46px; display: flex; gap: 6px; }
+.ins-btn {
+    background: #fff; color: #667eea; border: 1.5px solid #667eea; border-radius: 6px;
+    height: 28px; padding: 0 9px; font-size: 0.78em; cursor: pointer; white-space: nowrap;
+}
+.ins-btn:active { background: #667eea; color: #fff; }
+.remove-btn {
     position: absolute; top: 10px; right: 10px;
     background: #f56565; color: white; border: none;
     width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
@@ -341,6 +347,7 @@ textarea { resize: vertical; min-height: 60px; }
                         <button type="button" onclick="runDiag()" style="margin-left:auto;background:#e5e7eb;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.8em;">🔧 連線檢測</button>
                     </div>
                     <div id="saveStatus"></div>
+                    <div id="imgStatus" style="display:none;"></div>
                 </div>
             </div>
             <div class="form-row">
@@ -1376,7 +1383,7 @@ function setupAutocomplete(modelInput, nameInput, priceInput, unitInput) {
     });
 }
 
-function addProduct(){
+function addProduct(refEl, where){
     productCount++;
     var wrap = document.getElementById('productsWrap');
     var div = document.createElement('div');
@@ -1384,6 +1391,7 @@ function addProduct(){
     div.innerHTML =
         '<div class="num-badge">'+productCount+'</div>'+
         '<button class="remove-btn" onclick="this.parentElement.remove()">✕</button>'+
+        '<div class="row-tools"><button type="button" class="ins-btn" data-where="before">↑ 上方插入</button><button type="button" class="ins-btn" data-where="after">↓ 下方插入</button></div>'+
         '<div class="product-row">'+
             '<div class="form-group"><label>型號 *</label><input type="text" class="p-model" required placeholder="輸入型號自動提示"></div>'+
             '<div class="form-group"><label>品名 *</label><input type="text" class="p-name" required placeholder="自動帶入或手動填寫"></div>'+
@@ -1401,15 +1409,43 @@ function addProduct(){
             '<div class="form-group"><label>功率</label><input type="text" class="p-power" placeholder="例：200W"></div>'+
             '<div class="form-group"><label>溫度範圍</label><input type="text" class="p-temp" placeholder="例：200℃~480℃"></div>'+
             '<div class="form-group"><label>其他規格</label><input type="text" class="p-other-spec" placeholder="例：數位顯示"></div>'+
+        '</div>'+
+        '<div class="img-box" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e5e7eb;">'+
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'+
+                '<button type="button" class="img-add" style="background:#fff;border:1.5px dashed #94a3b8;color:#475569;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:0.85em;">🖼️ 新增圖片（會放在報價單此項目下方）</button>'+
+                '<span class="img-count" style="font-size:0.8em;color:#6b7280;"></span>'+
+            '</div>'+
+            '<div class="img-thumbs" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;"></div>'+
+            '<input type="file" class="img-file" accept="image/*" multiple style="display:none;">'+
         '</div>';
-    wrap.appendChild(div);
+    if(refEl && refEl.parentNode === wrap){                      // 指定位置：插在某一列的上方/下方
+        wrap.insertBefore(div, where === 'before' ? refEl : refEl.nextSibling);
+        renumberProducts();
+    } else {
+        wrap.appendChild(div);                                    // 沒指定位置：和以前一樣加在最後面
+    }
     
     const modelInput = div.querySelector('.p-model');
     const nameInput = div.querySelector('.p-name');
     const priceInput = div.querySelector('.p-price');
     const unitInput = div.querySelector('.p-unit');
     setupAutocomplete(modelInput, nameInput, priceInput, unitInput);
+    if(refEl && refEl.parentNode === wrap){                      // 插入後：游標直接跳到新那一列的型號欄
+        try{ div.scrollIntoView({behavior:'smooth', block:'center'}); modelInput.focus(); }catch(e){}
+    }
 }
+// 把畫面上的編號圓圈依實際順序重排（插入後使用）
+function renumberProducts(){
+    var items = document.querySelectorAll('#productsWrap .product-item');
+    items.forEach(function(el, i){ var b = el.querySelector('.num-badge'); if(b) b.textContent = i+1; });
+    productCount = items.length;
+}
+document.addEventListener('click', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('.ins-btn') : null;
+    if(!b) return;
+    var it = b.closest('.product-item');
+    if(it) addProduct(it, b.getAttribute('data-where'));
+});
 window.addProduct = addProduct;
 
 window.resetProductCount = function(){ productCount = 0; };
@@ -1473,11 +1509,14 @@ function collectProducts(){
             qty:   parseFloat(el.querySelector('.p-qty').value)||0,
             unit:  el.querySelector('.p-unit').value,
             price: parseFloat(el.querySelector('.p-price').value)||0,
-            remark: el.querySelector('.p-remark') ? el.querySelector('.p-remark').value : ''
+            remark: el.querySelector('.p-remark') ? el.querySelector('.p-remark').value : '',
+            images: (el._imgs || []).slice()
         });
     });
     return out;
 }
+
+window.collectProducts = collectProducts;
 
 function downloadBlob(blob, filename){
     var url = URL.createObjectURL(blob);
@@ -1583,8 +1622,9 @@ function buildExcel(products, lang){
             cell.value=headers[i]; cell.font={size:11,bold:true}; cell.alignment=center; cell.border=bAll;
         });
         
+        var rowOf=[], curRow=16;
         products.forEach(function(p,i){
-            var r=16+i;
+            var r=curRow; rowOf.push(r);
             ws.getCell('A'+r).value=p.no;
             ws.getCell('B'+r).value=p.model;
             ws.getCell('C'+r).value=p.name;
@@ -1598,9 +1638,23 @@ function buildExcel(products, lang){
                 ws.getCell(c+r).border=bAll; 
                 ws.getCell(c+r).alignment=midL; 
             });
+            curRow++;
+            var eimgs=(p.images||[]).filter(function(im){return im.dataUrl;});
+            if(eimgs.length){
+                var ir=curRow, lay=excelImageLayout(eimgs);
+                ws.mergeCells('A'+ir+':H'+ir);
+                cols.forEach(function(c){ ws.getCell(c+ir).border=bAll; });
+                ws.getRow(ir).height=lay.heightPt;
+                eimgs.forEach(function(im,k){
+                    var pos=lay.items[k];
+                    var imgId=wb.addImage({base64:im.dataUrl, extension:'jpeg'});
+                    ws.addImage(imgId,{tl:{col:pos.col,row:(ir-1)+pos.rowOff}, ext:{width:pos.w,height:pos.h}});
+                });
+                curRow++;
+            }
         });
         
-        var sumRow=16+products.length+2;
+        var sumRow=curRow+2;
         ws.mergeCells('A'+sumRow+':B'+sumRow); 
         ws.getCell('A'+sumRow).value = isChinese ? '備  註 :' : 'Notes:';
         ws.getCell('A'+sumRow).font={size:11,bold:true};
@@ -1608,7 +1662,7 @@ function buildExcel(products, lang){
         ws.getCell('G'+sumRow).value = isChinese ? '合   計' : 'Subtotal';
         ws.getCell('G'+sumRow).font={size:11,bold:true}; 
         ws.getCell('G'+sumRow).alignment={horizontal:'right'};
-        ws.getCell('H'+sumRow).value={formula:'='+products.map(function(_,i){return 'H'+(16+i);}).join('+')};
+        ws.getCell('H'+sumRow).value={formula:'='+rowOf.map(function(r){return 'H'+r;}).join('+')};
         
         ws.getCell('B'+(sumRow+1)).value=val('note2');
         ws.getCell('G'+(sumRow+1)).value = isChinese ? '稅金' : 'Tax (5%)';
@@ -1692,16 +1746,20 @@ function fillPdfTemplate(products, lang, quoteId) {
     // 產品列
     var tbody = document.getElementById('t-rows');
     tbody.innerHTML = '';
-    var sub = 0;
+    var sub = 0, rowsHtml = '';
     products.forEach(function(p){
         var line = p.qty * p.price; sub += line;
         var unit = isChinese ? p.unit : (EN_TRANSLATIONS[p.unit] || p.unit);
-        tbody.innerHTML +=
+        rowsHtml +=
             '<tr><td>'+p.no+'</td><td class="left">'+p.model+'</td>' +
             '<td class="left">'+p.name+'</td><td class="left">'+p.specs+'</td>' +
             '<td>'+p.qty+'</td><td>'+unit+'</td>' +
             '<td>'+fmt(p.price)+'</td><td>'+fmt(line)+'</td></tr>';
+        var pimgs = (p.images || []).filter(function(im){ return im.dataUrl; });
+        if(pimgs.length) rowsHtml += pdfImageRow(pimgs);          // 有附圖才多一列；沒附圖時和以前完全一樣
     });
+    tbody.innerHTML = rowsHtml;
+
     var tax = sub * 0.05;
     setV('t-sub', fmt(sub)); setV('t-tax', fmt(tax)); setV('t-total', fmt(sub+tax));
 
@@ -1729,12 +1787,27 @@ function buildPDF(products, lang, quoteId){
                     backgroundColor: '#ffffff',
                     logging: false
                 }).then(function(canvas){
+                    var hasImg = products.some(function(p){ return (p.images||[]).some(function(im){ return im.dataUrl; }); });
+                    var cuts = hasImg ? collectCuts(tpl, canvas.width) : [];
                     tpl.style.display = 'none';
                     var doc = new window.jspdf.jsPDF('p','mm','a4');
                     var pw=210, ph=297;
                     var iw=pw, ih=(canvas.height/canvas.width)*pw;
-                    if(ih>ph){ var r=ph/ih; iw*=r; ih=ph; }
-                    doc.addImage(canvas.toDataURL('image/jpeg',0.88),'JPEG',(pw-iw)/2,0,iw,ih);
+                    if(hasImg && ih>ph){
+                        // 有附圖且超過一頁：不縮小，改成多頁，並在「列與列之間」換頁
+                        var pageH = Math.floor(canvas.width * ph / pw);
+                        planPages(cuts, canvas.height, pageH).forEach(function(pg, idx){
+                            var sh = pg[1]-pg[0];
+                            var pc = document.createElement('canvas'); pc.width = canvas.width; pc.height = sh;
+                            var g = pc.getContext('2d'); g.fillStyle='#ffffff'; g.fillRect(0,0,pc.width,sh);
+                            g.drawImage(canvas, 0, pg[0], canvas.width, sh, 0, 0, canvas.width, sh);
+                            if(idx>0) doc.addPage();
+                            doc.addImage(pc.toDataURL('image/jpeg',0.88),'JPEG',0,0,pw,(sh/canvas.width)*pw);
+                        });
+                    } else {
+                        if(ih>ph){ var r=ph/ih; iw*=r; ih=ph; }
+                        doc.addImage(canvas.toDataURL('image/jpeg',0.88),'JPEG',(pw-iw)/2,0,iw,ih);
+                    }
                     resolve(doc.output('blob'));
                 }).catch(function(e){
                     tpl.style.display = 'none';
@@ -1755,6 +1828,9 @@ window.generateQuote = function(lang, format){
     if(!products.length){ alert('請至少添加一個產品'); return; }
     if(products.some(function(p){return !p.model||!p.name||!p.price;})){
         alert('請填寫所有產品的型號、品名和單價'); return;
+    }
+    if(products.some(function(p){ return (p.images||[]).some(function(im){ return !im.dataUrl; }); })){
+        alert('有圖片還在載入或載入失敗，請稍候再輸出，或把那張圖片移除後再試。'); return;
     }
     if(format==='excel' && typeof ExcelJS==='undefined'){
         alert('⚠️ Excel 生成庫還沒載入完成，請稍候再試。'); return;
@@ -1778,12 +1854,15 @@ window.generateQuote = function(lang, format){
         window.__lastSaved = { sig: sig, id: id };      // 先登記：同一張再輸出別的格式時沿用同一個單號
         var baseName = id + '_' + dstr + '_' + cname + '_報價單_' + langName + ext;
         if(el) el.textContent = id;
+        // 先存檔：不管後面下載、分享區塊有沒有出錯，這張報價單（含圖片）都會進歷史
+        try{ saveToGS(products, id, sig); }catch(e){ logError('save-start', e.message, ''); }
+        try{ QI.uploadAll(products, setImgStatus); }catch(e){ logError('img-start', e.message, ''); }
 
         function onDone(blob) {
-            downloadBlob(blob, baseName);
             overlay.classList.remove('show');
-            showShareSection(products, id);
-            saveToGS(products, id, sig);                // 存入雲端（會讀回確認，失敗會提示）
+            try{ downloadBlob(blob, baseName); }
+            catch(e){ logError('download', e.message, ''); alert('⚠️ 檔案下載失敗：'+e.message+'\n（報價單已存入歷史，可以重新輸出）'); }
+            try{ showShareSection(products, id); }catch(e){ logError('share', e.message, ''); }
         }
         function onFail(err) {
             overlay.classList.remove('show');
@@ -1821,7 +1900,7 @@ function buildQuotePayload(products, id){
         fax:val('fax'), address:val('address'),
         priceCondition:val('priceCondition'),
         payment:val('paymentMethod'), delivery:val('deliveryTime'),
-        notes:'', items:JSON.stringify(products),
+        notes:'', items:JSON.stringify(IMG.strip(products)),
         subtotal:Math.round(sub), tax:Math.round(sub*0.05), total:Math.round(sub*1.05)
     };
 }
@@ -1986,7 +2065,7 @@ window.searchHistory = function() {
 };
 
 // 統一 JSONP 呼叫函數
-function gsCall(params, callback) {
+function gsCall(params, callback, timeoutMs) {
     var cbName = 'gsJSONP_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
     var done = false;
     var timer = setTimeout(function(){
@@ -1994,7 +2073,7 @@ function gsCall(params, callback) {
         delete window[cbName];
         var s = document.getElementById(cbName); if(s) s.remove();
         callback(null);
-    }, 8000);
+    }, timeoutMs || 8000);
     window[cbName] = function(res){
         if(done) return; done = true;
         clearTimeout(timer);
@@ -2133,6 +2212,7 @@ function applyQuote(q){
         f('.p-model',it.model); f('.p-name',it.name); f('.p-qty',it.qty||1);
         f('.p-unit',it.unit||'台'); f('.p-price',it.price); f('.p-remark',it.remark);
         el.dataset.lastPrice = (it.price==null?'':it.price); el.dataset.lastDate = fmtDateStr(q.date); window.updatePriceHint(el);
+        if(it.images && it.images.length) IMG.hydrate(el, it.images);
         if(it.specs){
             f('.p-other-spec',it.specs);
             var sf=el.querySelector('.specs-fields'), btn=el.querySelector('.specs-toggle');
@@ -2229,7 +2309,7 @@ function ocrProcessFile(file) {
 
 
 // ===== 錯誤回報（自動記到 Google Sheet「錯誤記錄」分頁）=====
-var APP_VERSION = 'v3.2';
+var APP_VERSION = 'v3.4';
 var __errCount = 0, __errSeen = {};
 function logError(type, message, extra){
     try{
@@ -2486,6 +2566,250 @@ window.applyPaste = function(){
     };
     setTimeout(window.checkUpdate,1500);
 })();
+
+
+// ===== 圖片功能：每個產品項目可附圖（最多4張）→ 輸出到 PDF/Excel，並存到雲端硬碟 =====
+function pdfImageRow(images){
+    var n = images.length, mw = (n===1) ? '60%' : (n===2 ? '48%' : '31%');
+    return '<tr class="img-row"><td colspan="8" class="left" style="padding:6px 7px;">' +
+        images.map(function(im){
+            return '<img src="'+im.dataUrl+'" style="max-height:150px;max-width:'+mw+';margin:0 8px 4px 0;border:1px solid #ddd;vertical-align:top;">';
+        }).join('') + '</td></tr>';
+}
+
+// Excel：欄寬(字元)8,18,28,22,8,8,12,12 → 約 欄寬*7+5 像素
+var EXCEL_COL_PX = [61,131,201,159,61,61,89,89];
+function excelImageLayout(images){
+    var total = EXCEL_COL_PX.reduce(function(a,b){ return a+b; }, 0), gap = 8, n = images.length;
+    var maxW = Math.min(240, Math.floor((total - gap*(n+1)) / n)), maxH = 150;
+    var items = [], x = gap, usedH = 0;
+    images.forEach(function(im){
+        var w0 = im.w || 800, h0 = im.h || 600, s = Math.min(maxW/w0, maxH/h0, 1);
+        var w = Math.max(1, Math.round(w0*s)), h = Math.max(1, Math.round(h0*s));
+        items.push({x:x, w:w, h:h}); x += w + gap; if(h > usedH) usedH = h;
+    });
+    var rowPx = usedH + 10, heightPt = Math.round(rowPx*0.75*100)/100;
+    items.forEach(function(it){
+        var xx = it.x, col = 0;
+        while(col < EXCEL_COL_PX.length-1 && xx >= EXCEL_COL_PX[col]){ xx -= EXCEL_COL_PX[col]; col++; }
+        it.col = col + xx/EXCEL_COL_PX[col];
+        it.rowOff = ((rowPx - it.h)/2) / rowPx;
+    });
+    return {heightPt: heightPt, items: items};
+}
+
+// PDF 分頁：在「列與列之間」切頁，避免把圖片或文字從中間切斷
+function planPages(cuts, H, pageH, minFill){
+    minFill = (minFill == null) ? 0.3 : minFill;
+    var pages = [], start = 0, sorted = cuts.slice().sort(function(a,b){ return a-b; });
+    while(start < H){
+        var limit = start + pageH;
+        if(limit >= H){ pages.push([start, H]); break; }
+        var end = 0;
+        for(var i = sorted.length-1; i >= 0; i--){
+            if(sorted[i] <= limit && sorted[i] > start + pageH*minFill){ end = sorted[i]; break; }
+        }
+        if(!end) end = limit;
+        end = Math.round(end);
+        pages.push([start, end]); start = end;
+    }
+    return pages;
+}
+function collectCuts(tpl, canvasW){
+    var scale = canvasW / tpl.offsetWidth, top = tpl.getBoundingClientRect().top, out = [];
+    var els = [].slice.call(tpl.children).concat([].slice.call(tpl.querySelectorAll('#t-rows tr')));
+    els.forEach(function(el){ out.push(Math.round((el.getBoundingClientRect().bottom - top) * scale)); });
+    return out;
+}
+
+var IMG = (function(){
+    var MAX_PER_ITEM = 4, MAX_DIM = 1400, QUALITY = 0.82, cache = {};
+    var api = {cache: cache, MAX_PER_ITEM: MAX_PER_ITEM};
+    function newKey(){ return 'I' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+    function readFile(file){
+        return new Promise(function(res, rej){
+            var fr = new FileReader();
+            fr.onload = function(){ res(fr.result); };
+            fr.onerror = function(){ rej(new Error('讀取檔案失敗')); };
+            fr.readAsDataURL(file);
+        });
+    }
+    function shrink(dataUrl){
+        return new Promise(function(res, rej){
+            var im = new Image();
+            im.onload = function(){
+                var w = im.naturalWidth, h = im.naturalHeight, s = Math.min(1, MAX_DIM / Math.max(w, h));
+                var cw = Math.max(1, Math.round(w*s)), ch = Math.max(1, Math.round(h*s));
+                var c = document.createElement('canvas'); c.width = cw; c.height = ch;
+                var g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, cw, ch); g.drawImage(im, 0, 0, cw, ch);   // 白底，避免透明PNG變黑
+                res({dataUrl: c.toDataURL('image/jpeg', QUALITY), w: cw, h: ch});
+            };
+            im.onerror = function(){ rej(new Error('不是有效的圖片')); };
+            im.src = dataUrl;
+        });
+    }
+    api.processFile = function(file){
+        return readFile(file).then(shrink).then(function(r){
+            return {key: newKey(), dataUrl: r.dataUrl, w: r.w, h: r.h, uploaded: false};
+        });
+    };
+    function list(el){ return el._imgs || (el._imgs = []); }
+    api.list = list;
+    api.render = function(el){
+        var box = el.querySelector('.img-thumbs'); if(!box) return;
+        var a = list(el);
+        box.innerHTML = a.map(function(im, i){
+            var inner = im.dataUrl
+                ? '<img src="'+im.dataUrl+'" style="height:64px;border-radius:6px;border:1px solid #ddd;display:block;">'
+                : '<div style="height:64px;min-width:80px;display:flex;align-items:center;justify-content:center;background:#f3f4f6;border-radius:6px;font-size:0.75em;color:'+(im.failed?'#dc2626':'#6b7280')+';padding:0 8px;">'+(im.failed?'⚠️ 載入失敗':'載入中…')+'</div>';
+            return '<div style="position:relative;display:inline-block;">'+inner+
+                '<button type="button" class="img-del" data-i="'+i+'" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:none;background:#ef4444;color:#fff;cursor:pointer;font-size:12px;line-height:20px;padding:0;">✕</button></div>';
+        }).join('');
+        var btn = el.querySelector('.img-add'); if(btn) btn.style.display = (a.length >= MAX_PER_ITEM) ? 'none' : '';
+        var cnt = el.querySelector('.img-count'); if(cnt) cnt.textContent = a.length ? (a.length + '/' + MAX_PER_ITEM + ' 張') : '';
+    };
+    api.addFiles = function(el, files){
+        var arr = [].slice.call(files || []), room = MAX_PER_ITEM - list(el).length;
+        if(arr.length > room){ showToast('每個項目最多 ' + MAX_PER_ITEM + ' 張圖片，多的已略過'); arr = arr.slice(0, Math.max(room, 0)); }
+        var chain = Promise.resolve();
+        arr.forEach(function(f){
+            chain = chain.then(function(){
+                return api.processFile(f).then(function(im){ list(el).push(im); cache[im.key] = im.dataUrl; api.render(el); })
+                    .catch(function(e){ showToast('⚠️ ' + (f.name || '圖片') + '：' + e.message); });
+            });
+        });
+        return chain;
+    };
+    api.remove = function(el, i){ if(!el) return; list(el).splice(i, 1); api.render(el); };
+    // 從歷史報價帶出圖片：先顯示「載入中」，再逐張向雲端取回
+    api.hydrate = function(el, images){
+        var a = list(el); a.length = 0;
+        images.forEach(function(i){ a.push({key: i.key, w: i.w || 0, h: i.h || 0, dataUrl: cache[i.key] || null, uploaded: true, failed: false}); });
+        api.render(el);
+        var chain = Promise.resolve();
+        a.forEach(function(im){
+            if(im.dataUrl) return;
+            chain = chain.then(function(){
+                return QI.fetchImage(im.key).then(function(d){
+                    if(d){ im.dataUrl = d; cache[im.key] = d; } else { im.failed = true; }
+                    api.render(el);
+                });
+            });
+        });
+        return chain;
+    };
+    // 存進雲端的報價資料只放圖片代號，不放圖片本體
+    api.strip = function(products){
+        return products.map(function(p){
+            var o = {}; Object.keys(p).forEach(function(k){ if(k !== 'images') o[k] = p[k]; });
+            if(p.images && p.images.length) o.images = p.images.map(function(i){ return {key: i.key, w: i.w || 0, h: i.h || 0}; });
+            return o;
+        });
+    };
+    document.addEventListener('click', function(e){
+        var t = e.target; if(!t || !t.closest) return;
+        var add = t.closest('.img-add');
+        if(add){ var it = add.closest('.product-item'), f = it && it.querySelector('.img-file'); if(f) f.click(); return; }
+        var del = t.closest('.img-del');
+        if(del){ api.remove(del.closest('.product-item'), parseInt(del.getAttribute('data-i'), 10)); }
+    });
+    document.addEventListener('change', function(e){
+        var t = e.target;
+        if(t && t.classList && t.classList.contains('img-file')){
+            var it = t.closest('.product-item');
+            api.addFiles(it, t.files).then(function(){ t.value = ''; });
+        }
+    });
+    return api;
+})();
+
+var QI = (function(){
+    function post(params){
+        return fetch(GS_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(params)})
+            .then(function(r){ return r.json(); }).catch(function(){ return null; });
+    }
+    function formPost(params){
+        try{
+            var name = 'qiFrame_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+            var iframe = document.createElement('iframe'); iframe.name = name; iframe.style.display = 'none';
+            var form = document.createElement('form'); form.method = 'POST'; form.action = GS_URL; form.target = name; form.style.display = 'none';
+            Object.keys(params).forEach(function(k){ var i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = params[k]; form.appendChild(i); });
+            document.body.appendChild(iframe); document.body.appendChild(form); form.submit();
+            setTimeout(function(){ form.remove(); iframe.remove(); }, 15000);
+        }catch(e){}
+    }
+    function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+    function has(key){
+        return new Promise(function(res){ gsCall({action:'hasImage', key:key}, function(r){ res(!!(r && r.ok && r.data && r.data.exists)); }); });
+    }
+    function hasRetry(key){
+        var waits = [0, 2500, 5000, 8000], i = 0;
+        function step(){
+            return sleep(waits[i]).then(function(){ return has(key); }).then(function(ok){
+                if(ok) return true;
+                i++; if(i >= waits.length) return false;
+                return step();
+            });
+        }
+        return step();
+    }
+    function uploadOne(im){
+        if(im.uploaded) return Promise.resolve(true);
+        var payload = {action:'saveImage', key: im.key, mime:'image/jpeg', data: String(im.dataUrl).split(',')[1]};
+        return post(payload).then(function(r){
+            if(!(r && r.ok)) formPost(payload);          // POST 讀不到回應 → 改用表單送出，再用 hasImage 確認
+            return hasRetry(im.key);
+        }).then(function(ok){ if(ok) im.uploaded = true; return ok; });
+    }
+    function uploadAll(products, onState){
+        var imgs = [];
+        products.forEach(function(p){ (p.images || []).forEach(function(im){ if(!im.uploaded && im.dataUrl) imgs.push(im); }); });
+        var total = imgs.length;
+        if(!total){ if(onState) onState('none', {}); return Promise.resolve({total:0, failed:0}); }
+        var done = 0, failed = 0, chain = Promise.resolve();
+        if(onState) onState('uploading', {done:0, total:total, failed:0});
+        imgs.forEach(function(im){
+            chain = chain.then(function(){
+                return uploadOne(im).then(function(ok){
+                    if(ok) done++; else failed++;
+                    if(onState) onState('uploading', {done:done, total:total, failed:failed});
+                });
+            });
+        });
+        return chain.then(function(){
+            if(onState) onState(failed ? 'fail' : 'ok', {done:done, total:total, failed:failed});
+            return {total:total, failed:failed};
+        });
+    }
+    function fetchImage(key){
+        return new Promise(function(res){
+            gsCall({action:'getImage', key:key}, function(r){
+                res((r && r.ok && r.data && r.data.data) ? ('data:' + (r.data.mime || 'image/jpeg') + ';base64,' + r.data.data) : null);
+            }, 30000);
+        });
+    }
+    return {uploadAll: uploadAll, fetchImage: fetchImage};
+})();
+
+function setImgStatus(state, info){
+    var el = document.getElementById('imgStatus'); if(!el) return;
+    info = info || {};
+    var base = 'margin-top:6px;padding:7px 12px;border-radius:8px;font-size:0.86em;line-height:1.7;';
+    if(state === 'none'){ el.style.cssText = 'display:none;'; el.innerHTML = ''; return; }
+    if(state === 'uploading'){
+        el.style.cssText = base + 'background:#eff6ff;color:#1d4ed8;';
+        el.innerHTML = '🖼️ 圖片上傳雲端中… ' + (info.done||0) + '/' + info.total;
+    } else if(state === 'ok'){
+        el.style.cssText = base + 'background:#ecfdf5;color:#047857;';
+        el.innerHTML = '🖼️ ' + info.total + ' 張圖片已存入雲端';
+    } else {
+        el.style.cssText = base + 'background:#fff7ed;color:#c2410c;';
+        el.innerHTML = '⚠️ 有 ' + info.failed + ' 張圖片還沒上傳到雲端（報價單文字內容已存入）。 ' +
+            '<button type="button" onclick="retryImages()" style="margin-left:6px;background:#f97316;color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;">重試上傳</button>' +
+            '<div style="font-size:0.85em;color:#9a3412;">若一直失敗，請確認 Apps Script 已更新為新版，並已完成「雲端硬碟授權」。</div>';
+    }
+}
+window.retryImages = function(){ QI.uploadAll(window.collectProducts(), setImgStatus); };
 
 </script>
 </body>
