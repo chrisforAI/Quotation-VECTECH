@@ -2067,18 +2067,22 @@ window.searchHistory = function() {
 // 統一 JSONP 呼叫函數
 function gsCall(params, callback, timeoutMs) {
     var cbName = 'gsJSONP_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-    var done = false;
-    var timer = setTimeout(function(){
+    var done = false, loaded = false, timer;
+    function fail(why){                                   // why: neterror=請求被擋/網址無效｜badresponse=回的不是資料(權限/登入)｜timeout=逾時
         if(done) return; done = true;
+        clearTimeout(timer);
         delete window[cbName];
         var s = document.getElementById(cbName); if(s) s.remove();
-        callback(null);
-    }, timeoutMs || 8000);
+        window.__gsFail = why;
+        callback(null, why);
+    }
+    timer = setTimeout(function(){ fail(loaded ? 'badresponse' : 'timeout'); }, timeoutMs || 8000);
     window[cbName] = function(res){
         if(done) return; done = true;
         clearTimeout(timer);
         delete window[cbName];
         var s = document.getElementById(cbName); if(s) s.remove();
+        window.__gsFail = '';
         callback(res);
     };
     var qs = Object.keys(params).map(function(k){
@@ -2087,12 +2091,8 @@ function gsCall(params, callback, timeoutMs) {
     var script = document.createElement('script');
     script.id = cbName;
     script.src = GS_URL + '?' + qs + '&callback=' + cbName;
-    script.onerror = function(){
-        if(done) return; done = true;
-        clearTimeout(timer);
-        delete window[cbName]; script.remove();
-        callback(null);
-    };
+    script.onload = function(){ loaded = true; if(!done) fail('badresponse'); };   // 載入成功卻沒呼叫回傳函式 → Google 回的是登入/權限頁
+    script.onerror = function(){ fail('neterror'); };
     document.head.appendChild(script);
 }
 
@@ -2142,9 +2142,17 @@ function showToast(msg){
     document.body.appendChild(t);
     setTimeout(function(){ t.remove(); },2500);
 }
+function gsFailHint(why){
+    if(why === 'neterror') return '請求被擋住或網址無效。常見原因：瀏覽器外掛（廣告／隱私擴充）、公司或學校防火牆、網址已失效。請改用無痕視窗、換瀏覽器，或換網路（例如手機熱點）試試。';
+    if(why === 'badresponse') return 'Google 回傳的不是資料，通常是權限或登入問題。請確認 Apps Script 部署為「執行身分：我」、「誰可以存取：所有人」；若這台電腦同時登入多個 Google 帳號，請改用無痕視窗。';
+    if(why === 'timeout') return '等候逾時：網路太慢或 Google 暫時沒回應，請稍後再按「重新整理」。';
+    return '請確認 Apps Script 已部署為「所有人」可存取，且網址是最新版本';
+}
 function gsFailMsg(){
+    var why = window.__gsFail || '';
+    var fileWarn = (location.protocol === 'file:') ? '<br><b style="color:#b45309;">⚠️ 你目前是直接開啟本機檔案，請改用網站網址開啟。</b>' : '';
     return '<div style="text-align:center;color:#ef4444;padding:20px;line-height:1.8;">❌ 連不上 Google Sheet<br>'+
-        '<span style="font-size:0.85em;color:#6b7280;">請確認 Apps Script 已部署為「所有人」可存取，且網址是最新版本</span><br>'+
+        '<span style="font-size:0.85em;color:#6b7280;">'+gsFailHint(why)+'</span>'+fileWarn+'<br>'+
         '<a href="'+GS_URL+'?action=nextId" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;background:#667eea;color:#fff;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:0.85em;">🔧 點此測試連線</a>'+
         '<div style="font-size:0.75em;color:#9ca3af;margin-top:6px;">正常會看到 {&quot;ok&quot;:true,&quot;data&quot;:{&quot;id&quot;:&quot;V…&quot;}}</div></div>';
 }
@@ -2309,7 +2317,7 @@ function ocrProcessFile(file) {
 
 
 // ===== 錯誤回報（自動記到 Google Sheet「錯誤記錄」分頁）=====
-var APP_VERSION = 'v3.4';
+var APP_VERSION = 'v3.5';
 var __errCount = 0, __errSeen = {};
 function logError(type, message, extra){
     try{
@@ -2450,9 +2458,12 @@ window.runDiag = function(){
     modal.style.display='block'; var lines=[];
     function add(t){ lines.push(t); box.textContent=lines.join('\n'); }
     add('網頁版本：'+APP_VERSION);
+    add('開啟位置：'+(location.protocol==='file:' ? '⚠️ 本機檔案（file://）— 請改用網站網址開啟' : location.origin));
+    add('瀏覽器：'+String(navigator.userAgent||'').replace(/\s+/g,' ').slice(0,90));
+    add('網路狀態：'+(navigator.onLine===false ? '離線' : '有網路'));
     add('1) 讀取測試…');
-    gsCall({action:'ping'}, function(r){
-        if(!r){ add('❌ 連不上 Google。請確認 Apps Script 已部署為「所有人」可存取，且網址是最新版本。'); add('3) 尚未同步的暫存報價：'+QS.pendingCount()+' 張'); return; }
+    gsCall({action:'ping'}, function(r, why){
+        if(!r){ add('❌ 連不上 Google。'+gsFailHint(why)); add('3) 尚未同步的暫存報價：'+QS.pendingCount()+' 張'); return; }
         if(r.ok && r.data && r.data.version){ add('✅ 連線正常，Apps Script 版本：'+r.data.version); }
         else { add('⚠️ 連得上，但 Apps Script 是舊版（不認得 ping）。請把 apps_script.gs 整份貼上，再用「新版本」重新部署。'); }
         add('2) 寫入通道測試…');
