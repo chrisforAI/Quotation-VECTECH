@@ -179,6 +179,7 @@ textarea { resize: vertical; min-height: 60px; }
     .product-row, .product-row.three, .product-row.four { grid-template-columns: 1fr; }
     .generate-btns { grid-template-columns: 1fr; }
     .specs-fields.show { grid-template-columns: 1fr; }
+.specs-fields textarea { width: 100%; box-sizing: border-box; min-height: 44px; line-height: 1.5; resize: vertical; overflow: hidden; }
     .content { padding: 16px; }
     .header { padding: 24px 16px; }
     .header h1 { font-size: 1.6em; }
@@ -1408,7 +1409,7 @@ function addProduct(refEl, where){
             '<div class="form-group"><label>電壓</label><input type="text" class="p-voltage" placeholder="例：AC110V"></div>'+
             '<div class="form-group"><label>功率</label><input type="text" class="p-power" placeholder="例：200W"></div>'+
             '<div class="form-group"><label>溫度範圍</label><input type="text" class="p-temp" placeholder="例：200℃~480℃"></div>'+
-            '<div class="form-group"><label>其他規格</label><input type="text" class="p-other-spec" placeholder="例：數位顯示"></div>'+
+            '<div class="form-group"><label>其他規格</label><textarea class="p-other-spec" rows="2" placeholder="例：數位顯示（可直接貼上多行文字，Enter 換行）"></textarea></div>'+
         '</div>'+
         '<div class="img-box" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e5e7eb;">'+
             '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'+
@@ -1487,6 +1488,7 @@ function toggleSpecs(btn) {
     } else {
         specsFields.classList.add('show');
         btn.textContent = '− 隱藏設備規格';
+        if(window.autoGrowSpecs) window.autoGrowSpecs(specsFields);
     }
 }
 window.toggleSpecs = toggleSpecs;
@@ -1638,6 +1640,9 @@ function buildExcel(products, lang){
                 ws.getCell(c+r).border=bAll; 
                 ws.getCell(c+r).alignment=midL; 
             });
+            ws.getCell('D'+r).alignment={vertical:'middle', wrapText:true};      // 規格欄：自動換行
+            var hl=specLines(p.specs, 20);                                       // 規格很長或有換行時，依內容估算列高；短規格維持原樣
+            if(hl>1) ws.getRow(r).height=Math.max(15, hl*15);
             curRow++;
             var eimgs=(p.images||[]).filter(function(im){return im.dataUrl;});
             if(eimgs.length){
@@ -1752,7 +1757,7 @@ function fillPdfTemplate(products, lang, quoteId) {
         var unit = isChinese ? p.unit : (EN_TRANSLATIONS[p.unit] || p.unit);
         rowsHtml +=
             '<tr><td>'+p.no+'</td><td class="left">'+p.model+'</td>' +
-            '<td class="left">'+p.name+'</td><td class="left">'+p.specs+'</td>' +
+            '<td class="left">'+p.name+'</td><td class="left">'+String(p.specs==null?'':p.specs).replace(/\r?\n/g,'<br>')+'</td>' +
             '<td>'+p.qty+'</td><td>'+unit+'</td>' +
             '<td>'+fmt(p.price)+'</td><td>'+fmt(line)+'</td></tr>';
         var pimgs = (p.images || []).filter(function(im){ return im.dataUrl; });
@@ -2225,6 +2230,7 @@ function applyQuote(q){
             f('.p-other-spec',it.specs);
             var sf=el.querySelector('.specs-fields'), btn=el.querySelector('.specs-toggle');
             if(sf&&btn){ sf.classList.add('show'); btn.textContent='− 隱藏設備規格'; }
+            if(window.autoGrowSpecs) window.autoGrowSpecs(el);
         }
     });
     window.scrollTo({top:0,behavior:'smooth'});
@@ -2317,7 +2323,7 @@ function ocrProcessFile(file) {
 
 
 // ===== 錯誤回報（自動記到 Google Sheet「錯誤記錄」分頁）=====
-var APP_VERSION = 'v3.5';
+var APP_VERSION = 'v3.6';
 var __errCount = 0, __errSeen = {};
 function logError(type, message, extra){
     try{
@@ -2821,6 +2827,42 @@ function setImgStatus(state, info){
     }
 }
 window.retryImages = function(){ QI.uploadAll(window.collectProducts(), setImgStatus); };
+
+
+// ===== 規格欄：多行輸入、自動長高；Excel 列高估算 =====
+function specLines(text, limit){
+    limit = limit || 20;
+    var total = 0;
+    String(text == null ? '' : text).split(/\r?\n/).forEach(function(par){
+        var lines = 1, cur = 0;
+        (par.match(/[\x21-\x7e]+|\s|[^\x00-\x7f]/g) || []).forEach(function(tk){
+            var ascii = /^[\x21-\x7e]+$/.test(tk);
+            var w = ascii ? tk.length : ((tk.length === 1 && tk.charCodeAt(0) > 127) ? 2 : 1);
+            if(ascii){                                       // 英數字詞放不下就整詞換行；比一行還長就硬切
+                if(cur > 0 && cur + w > limit){ lines++; cur = 0; }
+                while(w > limit){ lines++; w -= limit; }
+                cur += w;
+            } else {
+                if(cur + w > limit){ lines++; cur = 0; }
+                cur += w;
+            }
+        });
+        total += lines;
+    });
+    return total;
+}
+function growTextarea(t){
+    if(!t || !t.scrollHeight) return;                        // 還沒顯示出來（隱藏中）就先不調整
+    t.style.height = 'auto';
+    t.style.height = (t.scrollHeight + 2) + 'px';
+}
+window.autoGrowSpecs = function(root){
+    [].slice.call((root || document).querySelectorAll('textarea.p-other-spec')).forEach(growTextarea);
+};
+document.addEventListener('input', function(e){
+    var t = e.target;
+    if(t && t.classList && t.classList.contains('p-other-spec')) growTextarea(t);
+});
 
 </script>
 </body>
